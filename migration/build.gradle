@@ -1,9 +1,14 @@
 apply plugin: 'com.android.library'
+apply plugin: 'kotlin-android'
+apply plugin: 'jacoco'
+
+// maven plugin and group definition
+// needed for jitpack support
+apply plugin: 'maven'
 
 android {
     compileSdkVersion 28
-
-
+    buildToolsVersion "28.0.3"
 
     defaultConfig {
         minSdkVersion 16
@@ -11,24 +16,96 @@ android {
         versionCode 1
         versionName "1.0"
 
-        testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
-
+        consumerProguardFiles 'proguard-rules.pro'
+        testInstrumentationRunner "kin.sdk.migration.MultiDexAndroidJUnitRunner"
+        multiDexEnabled true
     }
 
-    buildTypes {
-        release {
-            minifyEnabled false
-            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+    testOptions {
+        unitTests {
+            includeAndroidResources = true
         }
+    }
+
+    sourceSets {
+        test.java.srcDirs += 'src/test/kotlin'
+        androidTest.java.srcDirs += 'src/androidTest/kotlin'
     }
 
 }
 
 dependencies {
-    implementation fileTree(dir: 'libs', include: ['*.jar'])
+    implementation fileTree(dir: 'libs', include: '*.jar')
+    implementation supportDependencies.supportAnnotations
 
-    implementation 'com.android.support:appcompat-v7:28.0.0'
-    testImplementation 'junit:junit:4.12'
-    androidTestImplementation 'com.android.support.test:runner:1.0.2'
-    androidTestImplementation 'com.android.support.test.espresso:espresso-core:3.0.2'
+    testImplementation testingDependencies.junit
+    testImplementation testingDependencies.mockito
+    testImplementation testingDependencies.mockWebServer
+    testImplementation testingDependencies.robolectric
+
+    androidTestImplementation testingDependencies.mockitoAndroid
+    androidTestImplementation testingDependencies.androidTestRunner
+    androidTestImplementation testingDependencies.androidTestRules
+    androidTestImplementation testingDependencies.hamcrest
+    androidTestImplementation testingDependencies.multidex
+    androidTestImplementation testingDependencies.kotlin
+    androidTestImplementation testingDependencies.kotlinJUnitTest
+
+    implementation 'com.github.kinecosystem:kin-sdk-android:1de46face1'
+    implementation 'com.github.kinecosystem:kin-core-android:9a49d6d5c7'
+
 }
+
+//bundle javadocs with published aar
+task javadoc(type: Javadoc) {
+    failOnError false
+    source = android.sourceSets.main.java.sourceFiles
+    classpath += project.files(android.getBootClasspath().join(File.pathSeparator))
+    classpath += configurations.implementation
+}
+
+task sourcesJar(type: Jar) {
+    from android.sourceSets.main.java.srcDirs
+    classifier = 'sources'
+}
+artifacts {
+    archives sourcesJar
+}
+
+//jacoco unified code coverage
+jacoco {
+    toolVersion = '0.8.1'
+}
+
+tasks.withType(Test) {
+    jacoco.includeNoLocationClasses = true
+}
+
+task jacocoTestReport(type: JacocoReport, dependsOn: ['testDebugUnitTest', 'createDebugCoverageReport']) {
+
+    reports {
+        xml.enabled = true
+        html.enabled = true
+    }
+
+    def fileFilter = ['**/R.class', '**/R$*.class', '**/BuildConfig.*', '**/Manifest*.*', '**/*Test*.*', 'android/**/*.*']
+    def debugTree = fileTree(dir: "$project.buildDir/intermediates/classes/debug", excludes: fileFilter)
+    def mainSrc = "$project.projectDir/src/main/java"
+
+    sourceDirectories = files([mainSrc])
+    classDirectories = files([debugTree])
+    executionData = fileTree(dir: project.buildDir, includes: [
+            'jacoco/testDebugUnitTest.exec', 'outputs/code-coverage/connected/*coverage.ec'
+    ])
+}
+
+//remove all non test related from kotlin source set, to make sure no kotlin files included in build
+afterEvaluate {
+    android.sourceSets.all { sourceSet ->
+        if (!sourceSet.name.contains("test")) {
+            sourceSet.kotlin.setSrcDirs([])
+        }
+    }
+}
+
+
