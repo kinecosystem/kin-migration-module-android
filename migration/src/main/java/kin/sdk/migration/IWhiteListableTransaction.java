@@ -1,6 +1,6 @@
 package kin.sdk.migration;
 
-public interface IWhiteListableTransaction {
+public interface IWhitelistableTransaction {
     String getTransactionPayload();
     String getNetworkPassphrase();
 }

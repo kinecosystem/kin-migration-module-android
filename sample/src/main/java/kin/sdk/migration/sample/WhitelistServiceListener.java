@@ -1,7 +1,6 @@
-package kin.sdk.migration;
+package kin.sdk.migration.sample;
 
-public interface WhitelistServiceCallbacks {
+public interface WhitelistServiceListener {
     void onSuccess(String whitelistTransaction);
     void onFailure(Exception e);
 }
-

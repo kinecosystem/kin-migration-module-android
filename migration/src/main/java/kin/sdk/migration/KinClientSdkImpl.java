@@ -14,11 +14,18 @@ import kin.sdk.migration.exception.DeleteAccountException;
 public class KinClientSdkImpl implements IKinClient {
 
     private final IWhitelistService whitelistService;
+    private final KinSdkEnvironment kinSdkEnvironment;
     private KinClient kinClient;
 
     KinClientSdkImpl(Context context, Environment env, String appId, IWhitelistService whitelistService) {
         this.whitelistService = whitelistService;
+        kinSdkEnvironment = new KinSdkEnvironment(env);
         kinClient = new KinClient(context, env, appId);
+    }
+
+    @Override
+    public IEnvironment getEnvironment() {
+        return kinSdkEnvironment;
     }
 
     @NonNull

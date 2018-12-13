@@ -13,10 +13,17 @@ import kin.sdk.migration.exception.DeleteAccountException;
 
 public class KinClientCoreImpl implements IKinClient{
 
+    private final KinCoreEnvironment kinCoreEnvironment;
     private KinClient kinClient;
 
     KinClientCoreImpl(Context context, ServiceProvider serviceProvider) {
+        kinCoreEnvironment = new KinCoreEnvironment(serviceProvider);
         kinClient = new KinClient(context, serviceProvider);
+    }
+
+    @Override
+    public IEnvironment getEnvironment() {
+        return kinCoreEnvironment;
     }
 
     @NonNull

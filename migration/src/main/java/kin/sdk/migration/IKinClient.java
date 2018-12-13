@@ -9,6 +9,8 @@ import kin.sdk.migration.exception.DeleteAccountException;
 
 public interface IKinClient {
 
+    IEnvironment getEnvironment();
+
     /**
      * Creates and adds an account.
      * <p>Once created, the account information will be stored securely on the device and can

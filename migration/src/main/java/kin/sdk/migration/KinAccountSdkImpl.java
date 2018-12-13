@@ -3,6 +3,9 @@ package kin.sdk.migration;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 
+import org.json.JSONException;
+
+import java.io.IOException;
 import java.math.BigDecimal;
 
 import kin.sdk.Balance;
@@ -60,17 +63,17 @@ public class KinAccountSdkImpl implements IKinAccount {
 
     @NonNull
     @Override
-    public ITransactionId sendTransactionSync(@NonNull String publicAddress, @NonNull BigDecimal amount) throws OperationFailedException {
+    public ITransactionId sendTransactionSync(@NonNull String publicAddress, @NonNull BigDecimal amount) throws OperationFailedException, IOException, JSONException {
         return sendTransactionSync(publicAddress, amount, null);
     }
 
     @NonNull
     @Override
-    public ITransactionId sendTransactionSync(@NonNull String publicAddress, @NonNull BigDecimal amount, @Nullable String memo) throws OperationFailedException {
+    public ITransactionId sendTransactionSync(@NonNull String publicAddress, @NonNull BigDecimal amount, @Nullable String memo) throws OperationFailedException, IOException, JSONException {
         try {
             Transaction transaction = kinAccount.buildTransactionSync(publicAddress, amount, 0, memo);
             if (whitelistService != null) {
-                String whitelistTransaction = whitelistService.whitelistTransactionSync(transaction.getWhitelistableTransaction());
+                String whitelistTransaction = whitelistService.whitelistTransactionSync(new KinSdkTransaction(transaction).getWhitelistableTransaction());
                 TransactionId transactionId = kinAccount.sendWhitelistTransactionSync(whitelistTransaction);
                 return new KinSdkTransactionId(transactionId);
             } else {
@@ -188,7 +191,11 @@ public class KinAccountSdkImpl implements IKinAccount {
         @Override
         public void onResult(Transaction transaction) {
             if (whitelistService != null) {
-                whitelistService.whitelistTransaction(transaction.getWhitelistableTransaction(), new WhitelistServiceListener(callback));
+                try {
+                    whitelistService.whitelistTransaction(new KinSdkTransaction(transaction).getWhitelistableTransaction(), new WhitelistServiceListener(callback));
+                } catch (JSONException e) {
+                    onError(e);
+                }
             } else {
                 onError(new IllegalArgumentException("whitelist service listener is null"));
             }
@@ -201,7 +208,7 @@ public class KinAccountSdkImpl implements IKinAccount {
         }
     }
 
-    private class WhitelistServiceListener implements WhitelistServiceCallbacks {
+    private class WhitelistServiceListener implements IWhitelistServiceCallbacks {
 
         private final IResultCallback<ITransactionId> callback;
 

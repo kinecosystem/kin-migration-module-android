@@ -3,6 +3,9 @@ package kin.sdk.migration;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 
+import org.json.JSONException;
+
+import java.io.IOException;
 import java.math.BigDecimal;
 
 import kin.sdk.migration.exception.AccountNotActivatedException;
@@ -60,7 +63,7 @@ public interface IKinAccount {
      */
     @NonNull
     ITransactionId sendTransactionSync(@NonNull String publicAddress, @NonNull BigDecimal amount)
-            throws OperationFailedException;
+            throws OperationFailedException, IOException, JSONException;
 
     /**
      * Create, sign and send a transaction of the given amount in kin to the specified public address
@@ -79,7 +82,7 @@ public interface IKinAccount {
      */
     @NonNull
     ITransactionId sendTransactionSync(@NonNull String publicAddress, @NonNull BigDecimal amount, @Nullable String memo)
-            throws OperationFailedException;
+            throws OperationFailedException, IOException, JSONException;
 
 
     /**
