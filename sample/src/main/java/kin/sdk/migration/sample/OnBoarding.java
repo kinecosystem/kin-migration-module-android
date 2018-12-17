@@ -19,11 +19,12 @@ import okhttp3.Response;
 
 class OnBoarding {
 
-    // TODO: 13/12/2018 when blockchain team will finish the option to fund account for new kin then fix it here
-    private static final String TEST_SDK_URL_CREATE_ACCOUNT = "http://friendbot-testnet.kininfrastructure.com//?addr=";
-    private static final String TEST_CORE_URL_CREATE_ACCOUNT = "http://friendbot-playground.kininfrastructure.com/?addr=";
+    // TODO: 13/12/2018 when blockchain team will finish the option to fund account for new kin then fix it here so it won't be local host
     private static final int FUND_KIN_AMOUNT = 6000;
-    private static final String URL_FUND =
+    private static final String TEST_SDK_URL_CREATE_ACCOUNT = "http://10.0.2.2:8000?addr=%s&amount=" + String.valueOf(FUND_KIN_AMOUNT);;
+    private static final String TEST_CORE_URL_CREATE_ACCOUNT = "http://friendbot-playground.kininfrastructure.com/?addr=";
+    private static final String TEST_SDK_URL_FUND = "http://10.0.2.2:8000/fund?addr=%s&amount=" + String.valueOf(FUND_KIN_AMOUNT);
+    private static final String TEST_CORE_URL_FUND =
         "http://faucet-playground.kininfrastructure.com/fund?account=%s&amount=" + String.valueOf(FUND_KIN_AMOUNT);
     private final OkHttpClient okHttpClient;
     private final Handler handler;
@@ -53,7 +54,7 @@ class OnBoarding {
             listenerRegistration.remove();
             handler.removeCallbacks(accountCreationListeningTimeout);
             if (isNewKin) {
-                fundAccountWithKin(isNewKin, account, callbacks);
+               fireOnSuccess(callbacks);
             } else {
                 activateAccount(account, callbacks);
             }
@@ -67,7 +68,7 @@ class OnBoarding {
                     @Override
                     public void onResult(Void result) {
                         //This is not mandatory part of onboarding, account is now ready to send/receive kin
-                        fundAccountWithKin(false, account, callbacks);
+                        fundAccountWithKin(account, callbacks);
                     }
 
                     @Override
@@ -78,9 +79,10 @@ class OnBoarding {
     }
 
     private void createAccount(boolean isNewKin, @NonNull IKinAccount account, @NonNull Callbacks callbacks) {
-        String createAccountUrl = isNewKin ? TEST_SDK_URL_CREATE_ACCOUNT : TEST_CORE_URL_CREATE_ACCOUNT;
+        String createAccountUrl = isNewKin ?
+                String.format(TEST_SDK_URL_CREATE_ACCOUNT, account.getPublicAddress()) : TEST_CORE_URL_CREATE_ACCOUNT + account.getPublicAddress();
         Request request = new Request.Builder()
-            .url(createAccountUrl + account.getPublicAddress())
+            .url(createAccountUrl)
             .get()
             .build();
         okHttpClient.newCall(request)
@@ -101,34 +103,31 @@ class OnBoarding {
             });
     }
 
-    private void fundAccountWithKin(boolean isNewKin, IKinAccount account, @NonNull Callbacks callbacks) {
-        if (isNewKin) {
-            fireOnSuccess(callbacks);
-        } else {
-            Request request = new Request.Builder()
-                    .url(String.format(URL_FUND, account.getPublicAddress()))
-                    .get()
-                    .build();
-            okHttpClient.newCall(request)
-                    .enqueue(new Callback() {
-                        @Override
-                        public void onFailure(@NonNull Call call, @NonNull IOException e) {
-                            fireOnFailure(callbacks, e);
-                        }
+    private void fundAccountWithKin(IKinAccount account, @NonNull Callbacks callbacks) {
+        Request request = new Request.Builder()
+                .url(String.format(TEST_CORE_URL_FUND, account.getPublicAddress()))
+                .get()
+                .build();
+        okHttpClient.newCall(request)
+                .enqueue(new Callback() {
+                    @Override
+                    public void onFailure(@NonNull Call call, @NonNull IOException e) {
+                        fireOnFailure(callbacks, e);
+                    }
 
-                        @Override
-                        public void onResponse(@NonNull Call call, @NonNull Response response) {
-                            int code = response.code();
-                            response.close();
-                            if (code == 200) {
-                                //will trigger a call to get updated balance
-                                fireOnSuccess(callbacks);
-                            } else {
-                                fireOnFailure(callbacks, new Exception("Fund account - response code is " + response.code()));
-                            }
+                    @Override
+                    public void onResponse(@NonNull Call call, @NonNull Response response) {
+                        int code = response.code();
+                        response.close();
+                        if (code == 200) {
+                            //will trigger a call to get updated balance
+                            fireOnSuccess(callbacks);
+                        } else {
+                            fireOnFailure(callbacks, new Exception("Fund account - response code is " + response.code()));
                         }
-                    });
-        }
+                    }
+                });
+
     }
 
     private void fireOnFailure(@NonNull Callbacks callbacks, Exception ex) {

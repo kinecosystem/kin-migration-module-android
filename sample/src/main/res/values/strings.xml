@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">Kin Sample App</string>
+    <string name="app_name">Kin Migration Sample App</string>
     <string name="kin_foundation">Kin Foundation</string>
     <string name="core_test_net">Kin2 Test Net</string>
     <string name="sdk_test_net">New Kin Test Net</string>

@@ -40,7 +40,7 @@ public class KinClientSdkImpl implements IKinClient {
 
     @Override
     public IKinAccount getAccount(int index) {
-        kin.sdk.KinAccount kinAccount = kinClient.getAccount(index);
+        KinAccount kinAccount = kinClient.getAccount(index);
         return new KinAccountSdkImpl(kinAccount, whitelistService);
     }
 
