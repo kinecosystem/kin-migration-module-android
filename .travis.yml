@@ -40,8 +40,8 @@ before_script:
 
 script:
   - ./gradlew :sample:assembleDebug
-  - ./gradlew :kin-migration-sdk:testDebugUnitTest
-  - ./gradlew :kin-migration-sdk:connectedAndroidTest
+  - ./gradlew testDebugUnitTest
+  - ./gradlew connectedAndroidTest
 #  - ./gradlew jacocoTestReport  -Pandroid.testInstrumentationRunnerArguments.notClass=kin.sdk.migration.KinAccountIntegrationTest --info
 
 after_success:
