@@ -7,12 +7,12 @@ import android.support.v7.widget.SwitchCompat;
 import android.view.View;
 import android.widget.TextView;
 
-import kin.sdk.migration.IAccountStatus;
-import kin.sdk.migration.IBalance;
-import kin.sdk.migration.IKinAccount;
-import kin.sdk.migration.IListenerRegistration;
-import kin.sdk.migration.IRequest;
-import kin.sdk.migration.IResultCallback;
+import kin.sdk.migration.interfaces.IAccountStatus;
+import kin.sdk.migration.interfaces.IBalance;
+import kin.sdk.migration.interfaces.IKinAccount;
+import kin.sdk.migration.interfaces.IListenerRegistration;
+import kin.sdk.migration.interfaces.IRequest;
+import kin.sdk.migration.interfaces.IResultCallback;
 import kin.sdk.migration.exception.DeleteAccountException;
 
 /**

@@ -8,9 +8,9 @@ import java.io.IOException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
-import kin.sdk.migration.IKinAccount;
-import kin.sdk.migration.IListenerRegistration;
-import kin.sdk.migration.IResultCallback;
+import kin.sdk.migration.interfaces.IKinAccount;
+import kin.sdk.migration.interfaces.IListenerRegistration;
+import kin.sdk.migration.interfaces.IResultCallback;
 import okhttp3.Call;
 import okhttp3.Callback;
 import okhttp3.OkHttpClient;
@@ -21,7 +21,7 @@ class OnBoarding {
 
     // TODO: 13/12/2018 when blockchain team will finish the option to fund account for new kin then fix it here so it won't be local host
     private static final int FUND_KIN_AMOUNT = 6000;
-    private static final String TEST_SDK_URL_CREATE_ACCOUNT = "http://10.0.2.2:8000?addr=%s&amount=" + String.valueOf(FUND_KIN_AMOUNT);;
+    private static final String TEST_SDK_URL_CREATE_ACCOUNT = "http://10.0.2.2:8000?addr=%s&amount=" + String.valueOf(FUND_KIN_AMOUNT);
     private static final String TEST_CORE_URL_CREATE_ACCOUNT = "http://friendbot-playground.kininfrastructure.com/?addr=";
     private static final String TEST_SDK_URL_FUND = "http://10.0.2.2:8000/fund?addr=%s&amount=" + String.valueOf(FUND_KIN_AMOUNT);
     private static final String TEST_CORE_URL_FUND =

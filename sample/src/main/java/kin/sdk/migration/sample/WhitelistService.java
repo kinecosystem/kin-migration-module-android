@@ -10,9 +10,9 @@ import org.json.JSONObject;
 import java.io.IOException;
 import java.util.concurrent.TimeUnit;
 
-import kin.sdk.migration.IWhitelistableTransaction;
-import kin.sdk.migration.IWhitelistService;
-import kin.sdk.migration.IWhitelistServiceCallbacks;
+import kin.sdk.migration.interfaces.IWhitelistableTransaction;
+import kin.sdk.migration.interfaces.IWhitelistService;
+import kin.sdk.migration.interfaces.IWhitelistServiceCallbacks;
 import okhttp3.Call;
 import okhttp3.Callback;
 import okhttp3.MediaType;

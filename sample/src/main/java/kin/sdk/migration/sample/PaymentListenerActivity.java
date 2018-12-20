@@ -9,10 +9,10 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.TextView;
 
-import kin.sdk.migration.IKinAccount;
-import kin.sdk.migration.IKinClient;
-import kin.sdk.migration.IListenerRegistration;
-import kin.sdk.migration.IPaymentInfo;
+import kin.sdk.migration.interfaces.IKinAccount;
+import kin.sdk.migration.interfaces.IKinClient;
+import kin.sdk.migration.interfaces.IListenerRegistration;
+import kin.sdk.migration.interfaces.IPaymentInfo;
 
 public class PaymentListenerActivity extends BaseActivity {
 

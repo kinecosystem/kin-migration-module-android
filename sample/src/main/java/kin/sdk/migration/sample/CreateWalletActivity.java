@@ -13,7 +13,7 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.widget.EditText;
 
-import kin.sdk.migration.IKinClient;
+import kin.sdk.migration.interfaces.IKinClient;
 import kin.sdk.migration.exception.CreateAccountException;
 
 public class CreateWalletActivity extends BaseActivity {

@@ -12,9 +12,9 @@ import android.widget.EditText;
 
 import java.math.BigDecimal;
 
-import kin.sdk.migration.IKinAccount;
-import kin.sdk.migration.IRequest;
-import kin.sdk.migration.ITransactionId;
+import kin.sdk.migration.interfaces.IKinAccount;
+import kin.sdk.migration.interfaces.IRequest;
+import kin.sdk.migration.interfaces.ITransactionId;
 import kin.sdk.migration.exception.AccountDeletedException;
 import kin.sdk.migration.exception.OperationFailedException;
 

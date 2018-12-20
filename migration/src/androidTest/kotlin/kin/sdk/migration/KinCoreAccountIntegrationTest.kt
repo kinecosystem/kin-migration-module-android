@@ -5,9 +5,14 @@ import android.support.test.filters.LargeTest
 import kin.core.*
 import kin.sdk.migration.IntegConsts.TEST_CORE_NETWORK_ID
 import kin.sdk.migration.IntegConsts.TEST_CORE_NETWORK_URL
+import kin.sdk.migration.core_related.KinClientCoreImpl
 import kin.sdk.migration.exception.AccountNotActivatedException
 import kin.sdk.migration.exception.AccountNotFoundException
 import kin.sdk.migration.exception.InsufficientKinException
+import kin.sdk.migration.interfaces.IBalance
+import kin.sdk.migration.interfaces.IKinAccount
+import kin.sdk.migration.interfaces.IKinClient
+import kin.sdk.migration.interfaces.IPaymentInfo
 import org.hamcrest.CoreMatchers
 import org.hamcrest.MatcherAssert
 import org.junit.*

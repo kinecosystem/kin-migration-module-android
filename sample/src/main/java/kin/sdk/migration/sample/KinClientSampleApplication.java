@@ -3,7 +3,7 @@ package kin.sdk.migration.sample;
 import android.app.Application;
 import android.os.StrictMode;
 import android.os.StrictMode.VmPolicy;
-import kin.sdk.migration.IKinClient;
+import kin.sdk.migration.interfaces.IKinClient;
 import kin.sdk.migration.MigrationManager;
 
 public class KinClientSampleApplication extends Application {

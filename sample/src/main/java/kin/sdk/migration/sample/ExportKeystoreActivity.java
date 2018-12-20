@@ -10,7 +10,7 @@ import android.view.View;
 import android.widget.EditText;
 import android.widget.TextView;
 
-import kin.sdk.migration.IKinAccount;
+import kin.sdk.migration.interfaces.IKinAccount;
 import kin.sdk.migration.exception.AccountDeletedException;
 import kin.sdk.migration.exception.CryptoException;
 import kin.sdk.migration.exception.OperationFailedException;

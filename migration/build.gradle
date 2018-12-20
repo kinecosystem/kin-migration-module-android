@@ -51,7 +51,8 @@ dependencies {
     androidTestImplementation testingDependencies.kotlin
     androidTestImplementation testingDependencies.kotlinJUnitTest
 
-    implementation 'com.github.kinecosystem:kin-sdk-android:1de46face1'
+
+    implementation 'com.github.kinecosystem:kin-sdk-android:337923cc13'
     implementation 'com.github.kinecosystem:kin-core-android:9a49d6d5c7'
 
 }
