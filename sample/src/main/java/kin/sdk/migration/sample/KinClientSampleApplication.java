@@ -40,7 +40,7 @@ public class KinClientSampleApplication extends Application {
             return null;
         }
         whitelistService = new WhitelistService();
-        migrationManager = new MigrationManager(this, appId, networkUrl, networkId,
+        migrationManager = new MigrationManager(this, appId, networkUrl, networkId, null,
                 () -> isKinSdkVersion, whitelistService);
         kinClient = migrationManager.initMigration(); // could start the migration itself later.
 

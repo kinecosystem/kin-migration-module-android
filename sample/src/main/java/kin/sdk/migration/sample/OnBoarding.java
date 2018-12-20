@@ -19,11 +19,10 @@ import okhttp3.Response;
 
 class OnBoarding {
 
-    // TODO: 13/12/2018 when blockchain team will finish the option to fund account for new kin then fix it here so it won't be local host
     private static final int FUND_KIN_AMOUNT = 6000;
-    private static final String TEST_SDK_URL_CREATE_ACCOUNT = "http://10.0.2.2:8000?addr=%s&amount=" + String.valueOf(FUND_KIN_AMOUNT);
+    private static final String TEST_SDK_URL_CREATE_ACCOUNT = "http://friendbot-testnet.kininfrastructure.com?addr=%s&amount=" + String.valueOf(FUND_KIN_AMOUNT);
     private static final String TEST_CORE_URL_CREATE_ACCOUNT = "http://friendbot-playground.kininfrastructure.com/?addr=";
-    private static final String TEST_SDK_URL_FUND = "http://10.0.2.2:8000/fund?addr=%s&amount=" + String.valueOf(FUND_KIN_AMOUNT);
+    private static final String TEST_SDK_URL_FUND = "http://friendbot-testnet.kininfrastructure.com/fund?addr=%s&amount=" + String.valueOf(FUND_KIN_AMOUNT);
     private static final String TEST_CORE_URL_FUND =
         "http://faucet-playground.kininfrastructure.com/fund?account=%s&amount=" + String.valueOf(FUND_KIN_AMOUNT);
     private final OkHttpClient okHttpClient;
