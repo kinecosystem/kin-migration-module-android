@@ -3,8 +3,14 @@ package kin.sdk.migration.sample;
 import android.app.Application;
 import android.os.StrictMode;
 import android.os.StrictMode.VmPolicy;
+
+import kin.sdk.migration.MigrationNetworkInfo;
+import kin.sdk.migration.exception.FailedToResolveSdkVersionException;
+import kin.sdk.migration.exception.MigrationFailedException;
+import kin.sdk.migration.exception.MigrationInProcessException;
 import kin.sdk.migration.interfaces.IKinClient;
 import kin.sdk.migration.MigrationManager;
+import kin.sdk.migration.interfaces.MigrationManagerListener;
 
 public class KinClientSampleApplication extends Application {
 
@@ -12,8 +18,9 @@ public class KinClientSampleApplication extends Application {
     private static final String SDK_TEST_NETWORK_ID = "Kin Testnet ; December 2018";
     private static final String CORE_TEST_NETWORK_URL = "https://horizon-playground.kininfrastructure.com/";
     private static final String CORE_TEST_NETWORK_ID = "Kin Playground Network ; June 2018";
+    private static final String CORE_ISSUER = "GBC3SG6NGTSZ2OMH3FFGB7UVRQWILW367U4GSOOF4TFSZONV42UJXUH7";
 
-    private IKinClient kinClient = null;
+    private IKinClient kinClient;
     private WhitelistService whitelistService;
     private MigrationManager migrationManager;
     private boolean isKinSdkVersion;
@@ -25,26 +32,35 @@ public class KinClientSampleApplication extends Application {
         SDK_TEST
     }
 
-    public IKinClient createKinClient(NetWorkType type, String appId) {
-        final String networkUrl;
-        final String networkId;
+    public void createKinClient(NetWorkType type, String appId, MigrationManagerListener migrationManagerListener) {
+        MigrationNetworkInfo migrationNetworkInfo = new MigrationNetworkInfo(CORE_TEST_NETWORK_URL, CORE_TEST_NETWORK_ID,
+                                                        SDK_TEST_NETWORK_URL, SDK_TEST_NETWORK_ID, CORE_ISSUER);
         if (type == NetWorkType.SDK_TEST) {
-            networkUrl = SDK_TEST_NETWORK_URL;
-            networkId = SDK_TEST_NETWORK_ID;
             isKinSdkVersion = true;
         } else if (type == NetWorkType.CORE_TEST) {
-            networkUrl = CORE_TEST_NETWORK_URL;
-            networkId = CORE_TEST_NETWORK_ID;
             isKinSdkVersion = false;
         } else {
-            return null;
+             // TODO: 24/12/2018 handle it after we have production urls
         }
         whitelistService = new WhitelistService();
-        migrationManager = new MigrationManager(this, appId, networkUrl, networkId, null,
+        migrationManager = new MigrationManager(this, appId, migrationNetworkInfo,
                 () -> isKinSdkVersion, whitelistService);
-        kinClient = migrationManager.initMigration(); // could start the migration itself later.
+        try {
+            migrationManager.startMigration(new MigrationManagerListener() {
+                @Override
+                public void onComplete(IKinClient kinClient) {
+                    KinClientSampleApplication.this.kinClient = kinClient;
+                    migrationManagerListener.onComplete(kinClient);
+                }
 
-        return kinClient;
+                @Override
+                public void onError(Exception e) {
+                    migrationManagerListener.onError(e);
+                }
+            });
+        } catch (MigrationInProcessException e) {
+           migrationManagerListener.onError(e);
+        }
     }
 
     @Override

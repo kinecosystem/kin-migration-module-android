@@ -7,8 +7,12 @@ public class KinCoreTransactionId implements ITransactionId {
 
     private final String id;
 
-    KinCoreTransactionId(TransactionId transactionId) {
+    public KinCoreTransactionId(TransactionId transactionId) {
         this.id = transactionId.id();
+    }
+
+    public KinCoreTransactionId(String id) {
+        this.id = id;
     }
 
     @Override

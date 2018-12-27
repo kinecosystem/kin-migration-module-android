@@ -83,6 +83,35 @@ public class KinAccountCoreImpl implements IKinAccount {
     }
 
     @NonNull
+    public ITransactionId sendBurnTransactionSync(@NonNull String publicAddress) throws OperationFailedException {
+        try {
+            TransactionId transactionId = kinAccount.sendBurnAccountTransactionSync(publicAddress);
+            return new KinCoreTransactionId(transactionId);
+        } catch (kin.core.exception.AccountNotFoundException e) {
+            throw new AccountNotFoundException(e.getAccountId());
+        } catch (kin.core.exception.AccountNotActivatedException e) {
+            throw new AccountNotActivatedException(e.getAccountId());
+        } catch (kin.core.exception.TransactionFailedException e) {
+            throw new TransactionFailedException(e.getTransactionResultCode(), e.getOperationsResultCodes());
+        } catch (kin.core.exception.OperationFailedException e) {
+            throw new OperationFailedException(e.getMessage(), e.getCause());
+        }
+    }
+
+    @NonNull
+    public boolean isAccountBurned(@NonNull String publicAddress) throws OperationFailedException {
+        try {
+            return kinAccount.isAccountBurnedSync(publicAddress);
+        } catch (kin.core.exception.AccountNotFoundException e) {
+            throw new AccountNotFoundException(e.getAccountId());
+        } catch (kin.core.exception.AccountNotActivatedException e) {
+            throw new AccountNotActivatedException(e.getAccountId());
+        } catch (kin.core.exception.OperationFailedException e) {
+            throw new OperationFailedException(e.getMessage(), e.getCause());
+        }
+    }
+
+    @NonNull
     @Override
     public Request<IBalance> getBalance() {
         return new Request<>(new Callable<IBalance>() {

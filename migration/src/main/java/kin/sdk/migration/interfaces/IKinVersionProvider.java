@@ -1,7 +1,9 @@
 package kin.sdk.migration.interfaces;
 
+import kin.sdk.migration.exception.FailedToResolveSdkVersionException;
+
 public interface IKinVersionProvider {
 
-    boolean isKinSdkVersion();
+    boolean isKinSdkVersion() throws FailedToResolveSdkVersionException;
 
 }

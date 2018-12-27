@@ -8,6 +8,7 @@ import android.text.Html;
 import android.widget.TextView;
 
 import kin.sdk.migration.interfaces.IKinClient;
+import kin.sdk.migration.interfaces.MigrationManagerListener;
 
 /**
  * User is given a choice to create or use an account on the MAIN or TEST(test) networks
@@ -52,12 +53,22 @@ public class ChooseNetworkActivity extends BaseActivity {
 
     private void createKinClient(KinClientSampleApplication.NetWorkType netWorkType) {
         KinClientSampleApplication application = (KinClientSampleApplication) getApplication();
-        IKinClient kinClient = application.createKinClient(netWorkType,"test");
-        if (kinClient.hasAccount()) {
-            startActivity(WalletActivity.getIntent(this));
-        } else {
-            startActivity(CreateWalletActivity.getIntent(this));
-        }
+        application.createKinClient(netWorkType, "test", new MigrationManagerListener() {
+            @Override
+            public void onComplete(IKinClient kinClient) {
+                if (kinClient.hasAccount()) {
+                    // TODO: 24/12/2018 should implement a way to see if activity was not destroid
+                    startActivity(WalletActivity.getIntent(ChooseNetworkActivity.this));
+                } else {
+                    startActivity(CreateWalletActivity.getIntent(ChooseNetworkActivity.this));
+                }
+            }
+
+            @Override
+            public void onError(Exception e) {
+
+            }
+        });
     }
 
     private void startWebWrapperActivity(){
