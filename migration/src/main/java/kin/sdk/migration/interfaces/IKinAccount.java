@@ -2,18 +2,15 @@ package kin.sdk.migration.interfaces;
 
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
-
-import org.json.JSONException;
-
 import java.io.IOException;
 import java.math.BigDecimal;
-
 import kin.sdk.migration.exception.AccountNotActivatedException;
 import kin.sdk.migration.exception.CryptoException;
 import kin.sdk.migration.exception.OperationFailedException;
 import kin.sdk.migration.exception.AccountNotFoundException;
 import kin.sdk.migration.exception.TransactionFailedException;
 import kin.sdk.migration.exception.InsufficientKinException;
+import kin.utils.Request;
 
 public interface IKinAccount {
 
@@ -32,7 +29,7 @@ public interface IKinAccount {
      * @return {@code Request<TransactionId>}, TransactionId - the transaction identifier
      */
     @NonNull
-    IRequest<ITransactionId> sendTransaction(@NonNull String publicAddress, @NonNull BigDecimal amount); // TODO: 04/12/2018  what about the memo and the fee
+    Request<ITransactionId> sendTransaction(@NonNull String publicAddress, @NonNull BigDecimal amount);
 
     /**
      * Create Request for signing and sending a transaction of the given amount in kin, to the specified public
@@ -46,7 +43,7 @@ public interface IKinAccount {
      * @return {@code Request<TransactionId>}, TransactionId - the transaction identifier
      */
     @NonNull
-    IRequest<ITransactionId> sendTransaction(@NonNull String publicAddress, @NonNull BigDecimal amount, @Nullable String memo);
+    Request<ITransactionId> sendTransaction(@NonNull String publicAddress, @NonNull BigDecimal amount, @Nullable String memo);
 
     /**
      * Create, sign and send a transaction of the given amount in kin to the specified public address
@@ -63,7 +60,7 @@ public interface IKinAccount {
      */
     @NonNull
     ITransactionId sendTransactionSync(@NonNull String publicAddress, @NonNull BigDecimal amount)
-            throws OperationFailedException, IOException, JSONException;
+            throws OperationFailedException;
 
     /**
      * Create, sign and send a transaction of the given amount in kin to the specified public address
@@ -82,7 +79,7 @@ public interface IKinAccount {
      */
     @NonNull
     ITransactionId sendTransactionSync(@NonNull String publicAddress, @NonNull BigDecimal amount, @Nullable String memo)
-            throws OperationFailedException, IOException, JSONException;
+            throws OperationFailedException;
 
 
     /**
@@ -91,7 +88,7 @@ public interface IKinAccount {
      * @return {@code Request<Balance>} Balance - the balance in kin
      */
     @NonNull
-    IRequest<IBalance> getBalance();
+    Request<IBalance> getBalance();
 
     /**
      * Get the current confirmed balance in kin
@@ -112,7 +109,7 @@ public interface IKinAccount {
      * @return {@code Request<Void>}
      */
     @NonNull
-    IRequest<Void> activate();
+    Request<Void> activate();
 
     /**
      * Allow an account to receive kin.
@@ -133,13 +130,13 @@ public interface IKinAccount {
     int getStatusSync() throws OperationFailedException;
 
     /**
-     * Create Requestfor getting current account status on blockchain network.
+     * Create Request for getting current account status on blockchain network.
      * <p> See KinAccount.getStatusSync() for possibles errors</p>
      *
      * @return account status, either AccountStatus.NOT_CREATED, AccountStatus.NOT_ACTIVATED or
      * AccountStatus.ACTIVATED
      */
-    IRequest<Integer> getStatus();
+    Request<Integer> getStatus();
 
     /**
      * Export the account data as a JSON string. The seed is encrypted.

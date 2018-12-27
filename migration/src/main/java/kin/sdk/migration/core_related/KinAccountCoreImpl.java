@@ -3,19 +3,19 @@ package kin.sdk.migration.core_related;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import java.math.BigDecimal;
+import java.util.concurrent.Callable;
+
 import kin.core.Balance;
 import kin.core.EventListener;
 import kin.core.KinAccount;
 import kin.core.ListenerRegistration;
 import kin.core.PaymentInfo;
-import kin.core.Request;
 import kin.core.TransactionId;
 import kin.sdk.migration.interfaces.IBalance;
 import kin.sdk.migration.interfaces.IEventListener;
 import kin.sdk.migration.interfaces.IKinAccount;
 import kin.sdk.migration.interfaces.IListenerRegistration;
 import kin.sdk.migration.interfaces.IPaymentInfo;
-import kin.sdk.migration.interfaces.IRequest;
 import kin.sdk.migration.interfaces.ITransactionId;
 import kin.sdk.migration.exception.AccountNotActivatedException;
 import kin.sdk.migration.exception.AccountNotFoundException;
@@ -23,6 +23,7 @@ import kin.sdk.migration.exception.CryptoException;
 import kin.sdk.migration.exception.InsufficientKinException;
 import kin.sdk.migration.exception.OperationFailedException;
 import kin.sdk.migration.exception.TransactionFailedException;
+import kin.utils.Request;
 
 public class KinAccountCoreImpl implements IKinAccount {
 
@@ -41,18 +42,17 @@ public class KinAccountCoreImpl implements IKinAccount {
 
     @NonNull
     @Override
-    public IRequest<ITransactionId> sendTransaction(@NonNull String publicAddress, @NonNull BigDecimal amount) {
+    public Request<ITransactionId> sendTransaction(@NonNull String publicAddress, @NonNull BigDecimal amount) {
         return sendTransaction(publicAddress, amount, null);
     }
 
     @NonNull
     @Override
-    public IRequest<ITransactionId> sendTransaction(@NonNull String publicAddress, @NonNull BigDecimal amount, @Nullable String memo) {
-        final Request<TransactionId> request = kinAccount.sendTransaction(publicAddress, amount, memo);
-        return new KinCoreRequest<>(request, new KinCoreRequest.Transformer<ITransactionId, TransactionId>() {
+    public Request<ITransactionId> sendTransaction(final @NonNull String publicAddress, final @NonNull BigDecimal amount, final @Nullable String memo) {
+        return new Request<>(new Callable<ITransactionId>() {
             @Override
-            public ITransactionId transform(TransactionId transactionId) {
-                return new KinCoreTransactionId(transactionId);
+            public ITransactionId call() throws Exception {
+                return sendTransactionSync(publicAddress, amount, memo);
             }
         });
     }
@@ -84,12 +84,11 @@ public class KinAccountCoreImpl implements IKinAccount {
 
     @NonNull
     @Override
-    public IRequest<IBalance> getBalance() {
-        final Request<Balance> request = kinAccount.getBalance();
-        return new KinCoreRequest<>(request, new KinCoreRequest.Transformer<IBalance, Balance>() {
+    public Request<IBalance> getBalance() {
+        return new Request<>(new Callable<IBalance>() {
             @Override
-            public IBalance transform(Balance balance) {
-                return new KinCoreBalance(balance);
+            public IBalance call() throws Exception {
+                return getBalanceSync();
             }
         });
     }
@@ -111,12 +110,12 @@ public class KinAccountCoreImpl implements IKinAccount {
 
     @NonNull
     @Override
-    public IRequest<Void> activate() {
-        final Request<Void> request = kinAccount.activate();
-        return new KinCoreRequest<>(request, new KinCoreRequest.Transformer<Void, Void>() {
+    public Request<Void> activate() {
+        return new Request<>(new Callable<Void>() {
             @Override
-            public Void transform(Void nothing) {
-                return nothing; // TODO: 06/12/2018 check with Rizgan if that's ok
+            public Void call() throws Exception {
+                activateSync();
+                return null;
             }
         });
     }
@@ -133,12 +132,11 @@ public class KinAccountCoreImpl implements IKinAccount {
     }
 
     @Override
-    public IRequest<Integer> getStatus() {
-        final Request<Integer> request = kinAccount.getStatus();
-        return new KinCoreRequest<>(request, new KinCoreRequest.Transformer<Integer, Integer>() {
+    public Request<Integer> getStatus() {
+        return new Request<>(new Callable<Integer>() {
             @Override
-            public Integer transform(Integer status) {
-                return status;
+            public Integer call() throws Exception {
+                return getStatusSync();
             }
         });
     }

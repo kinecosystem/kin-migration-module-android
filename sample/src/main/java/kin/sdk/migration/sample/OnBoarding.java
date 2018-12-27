@@ -10,7 +10,7 @@ import java.util.concurrent.TimeoutException;
 
 import kin.sdk.migration.interfaces.IKinAccount;
 import kin.sdk.migration.interfaces.IListenerRegistration;
-import kin.sdk.migration.interfaces.IResultCallback;
+import kin.utils.ResultCallback;
 import okhttp3.Call;
 import okhttp3.Callback;
 import okhttp3.OkHttpClient;
@@ -63,7 +63,7 @@ class OnBoarding {
 
     private void activateAccount(@NonNull IKinAccount account, @NonNull Callbacks callbacks) {
         account.activate()
-                .run(new IResultCallback<Void>() {
+                .run(new ResultCallback<Void>() {
                     @Override
                     public void onResult(Void result) {
                         //This is not mandatory part of onboarding, account is now ready to send/receive kin

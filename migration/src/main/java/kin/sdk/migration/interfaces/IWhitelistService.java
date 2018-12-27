@@ -1,12 +1,8 @@
 package kin.sdk.migration.interfaces;
 
-import org.json.JSONException;
-
-import java.io.IOException;
+import kin.sdk.migration.exception.WhitelistTransactionFailedException;
 
 public interface IWhitelistService {
 
-    void whitelistTransaction(IWhitelistableTransaction whitelistableTransaction, IWhitelistServiceCallbacks callbacks) throws JSONException;
-
-    String whitelistTransactionSync(IWhitelistableTransaction whitelistableTransaction) throws IOException, JSONException;
+    String whitelistTransaction(IWhitelistableTransaction whitelistableTransaction) throws WhitelistTransactionFailedException;
 }

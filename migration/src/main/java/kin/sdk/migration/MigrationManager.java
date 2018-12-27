@@ -22,12 +22,12 @@ public class MigrationManager {
     private String storeKey;
 
     public MigrationManager(Context context, String appId, String networkUrl, String networkId, String issuer,
-                            IKinVersionProvider kinVersionProvider, IWhitelistService whitelistService) { // TODO: 06/12/2018 maybe also add the eventLogger
+                            IKinVersionProvider kinVersionProvider, IWhitelistService whitelistService) {
         this(context, appId, networkUrl, networkId, issuer, kinVersionProvider, whitelistService, null);
     }
 
     public MigrationManager(Context context, String appId, String networkUrl, String networkId, String issuer,
-                            IKinVersionProvider kinVersionProvider, IWhitelistService whitelistService, String storeKey) { // TODO: 06/12/2018 maybe also add the eventLogger
+                            IKinVersionProvider kinVersionProvider, IWhitelistService whitelistService, String storeKey) {
         this.context = context;
         this.appId = appId;
         this.networkUrl = networkUrl;
@@ -40,9 +40,6 @@ public class MigrationManager {
 
     public IKinClient initMigration() {
         IKinClient kinClient;
-        // TODO: 12/12/2018 this is an api call so we need to make sure the one who implement it knows that
-        // TODO: 12/12/2018 Also maybe we should use actual boolean in the constructor or in the init method instead of using it as an interface?
-        // TODO: 18/12/2018 maybe validate that we have all the needed stuff in order to init(depends on which version of course)
         boolean kinSdkVersion = kinVersionProvider.isKinSdkVersion();
         storeKey = (storeKey != null) ? storeKey : "";
         if (kinSdkVersion) {

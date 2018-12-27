@@ -13,10 +13,10 @@ import android.widget.EditText;
 import java.math.BigDecimal;
 
 import kin.sdk.migration.interfaces.IKinAccount;
-import kin.sdk.migration.interfaces.IRequest;
 import kin.sdk.migration.interfaces.ITransactionId;
 import kin.sdk.migration.exception.AccountDeletedException;
 import kin.sdk.migration.exception.OperationFailedException;
+import kin.utils.Request;
 
 /**
  * Displays form to enter public address and amount and a button to send a transaction
@@ -29,11 +29,10 @@ public class TransactionActivity extends BaseActivity {
         return new Intent(context, TransactionActivity.class);
     }
 
-    private View sendTransaction/*, retrieveMinimumFee*/, progressBar;
+    private View sendTransaction, progressBar;
 
-    private EditText toAddressInput, amountInput/*, feeInput*/, memoInput;
-//    private IRequest<Long> gertMinimumFeeRequest;
-    private IRequest<ITransactionId> sendTransactionRequest;
+    private EditText toAddressInput, amountInput, memoInput;
+    private Request<ITransactionId> sendTransactionRequest;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -45,9 +44,6 @@ public class TransactionActivity extends BaseActivity {
     @Override
     protected void onDestroy() {
         super.onDestroy();
-//        if (gertMinimumFeeRequest != null) {
-//            gertMinimumFeeRequest.cancel(false);
-//        }
         if (sendTransactionRequest != null) {
             sendTransactionRequest.cancel(false);
         }
@@ -56,11 +52,9 @@ public class TransactionActivity extends BaseActivity {
 
     private void initWidgets() {
         sendTransaction = findViewById(R.id.send_transaction_btn);
-//        retrieveMinimumFee = findViewById(R.id.retrieve_minimum_fee_btn);
         progressBar = findViewById(R.id.transaction_progress);
         toAddressInput = findViewById(R.id.to_address_input);
         amountInput = findViewById(R.id.amount_input);
-//        feeInput = findViewById(R.id.fee_input);
         memoInput = findViewById(R.id.memo_input);
 
         if (getKinClient().getEnvironment().isMainNet()) {
@@ -69,9 +63,6 @@ public class TransactionActivity extends BaseActivity {
 
         initToAddressInput();
         initAmountInput();
-//        initFeeInput();
-
-//        initMinimumFee();
         initSendTransaction();
     }
 
@@ -137,64 +128,11 @@ public class TransactionActivity extends BaseActivity {
         });
     }
 
-//    private void initFeeInput() {
-//        feeInput.addTextChangedListener(new TextWatcher() {
-//            @Override
-//            public void beforeTextChanged(CharSequence charSequence, int i, int i1, int i2) {
-//
-//            }
-//
-//            @Override
-//            public void onTextChanged(CharSequence charSequence, int i, int i1, int i2) {
-//                if (!TextUtils.isEmpty(charSequence) && !TextUtils.isEmpty(toAddressInput.getText()) && !TextUtils.isEmpty(amountInput.getText())) {
-//                    if (!sendTransaction.isEnabled()) {
-//                        sendTransaction.setEnabled(true);
-//                    }
-//                } else if (sendTransaction.isEnabled()) {
-//                    sendTransaction.setEnabled(false);
-//                }
-//            }
-//
-//            @Override
-//            public void afterTextChanged(Editable editable) {
-//
-//            }
-//        });
-//
-//        feeInput.setOnFocusChangeListener((view, hasFocus) -> {
-//            if (!hasFocus && !feeInput.hasFocus()) {
-//                hideKeyboard(view);
-//            }
-//        });
-//    }
-
-//    private void initMinimumFee() {
-//        retrieveMinimumFee.setOnClickListener(v -> {
-//            retrieveMinimumFee.setEnabled(false);
-//            gertMinimumFeeRequest = getKinClient().getMinimumFee();
-//            gertMinimumFeeRequest.run(new IResultCallback<Long>() {
-//                @Override
-//                public void onResult(Long minimumFee) {
-//                    Log.d(TAG, "handleSendTransaction: minimum fee = " + minimumFee);
-//                    feeInput.setText(minimumFee != null ? String.valueOf(minimumFee) : "");
-//                    retrieveMinimumFee.setEnabled(true);
-//                }
-//
-//                @Override
-//                public void onError(Exception e) {
-//                    retrieveMinimumFee.setEnabled(true);
-//                    Utils.logError(e, "handleSendTransaction");
-//                    KinAlertDialog.createErrorDialog(TransactionActivity.this, e.getMessage()).show();
-//                }
-//            });
-//        });
-//    }
-
     private void initSendTransaction() {
         sendTransaction.setOnClickListener(view -> {
             BigDecimal amount = new BigDecimal(amountInput.getText().toString());
             try {
-                handleSendTransaction(toAddressInput.getText().toString(), amount/*, Integer.valueOf(feeInput.getText().toString())*/, memoInput.getText().toString());
+                handleSendTransaction(toAddressInput.getText().toString(), amount, memoInput.getText().toString());
             } catch (OperationFailedException e) {
                 Utils.logError(e, "handleSendTransaction");
                 KinAlertDialog.createErrorDialog(TransactionActivity.this, e.getMessage()).show();
@@ -212,23 +150,23 @@ public class TransactionActivity extends BaseActivity {
         return R.string.transaction;
     }
 
-    private void handleSendTransaction(String toAddress, BigDecimal amount/*, int fee*/, String memo) throws OperationFailedException {
+    private void handleSendTransaction(String toAddress, BigDecimal amount, String memo) throws OperationFailedException {
         progressBar.setVisibility(View.VISIBLE);
         IKinAccount account = getKinClient().getAccount(0);
         if (account != null) {
-            sendTransaction(toAddress, amount/*, fee*/, memo, account);
+            sendTransaction(toAddress, amount, memo, account);
         } else {
             progressBar.setVisibility(View.GONE);
             throw new AccountDeletedException();
         }
     }
 
-    private void sendTransaction(String toAddress, BigDecimal amount/*, int fee*/, String memo, IKinAccount account) {
+    private void sendTransaction(String toAddress, BigDecimal amount, String memo, IKinAccount account) {
         ((KinClientSampleApplication) getApplication()).setWhitelistServiceListener(new WhitelistServiceListenerImpl());
         if (memo == null) {
-            sendTransactionRequest = account.sendTransaction(toAddress, amount/*, fee*/);
+            sendTransactionRequest = account.sendTransaction(toAddress, amount);
         } else {
-            sendTransactionRequest = account.sendTransaction(toAddress, amount/*, fee*/, memo);
+            sendTransactionRequest = account.sendTransaction(toAddress, amount, memo);
         }
         sendTransactionRequest.run(new SendTransactionCallback());
     }

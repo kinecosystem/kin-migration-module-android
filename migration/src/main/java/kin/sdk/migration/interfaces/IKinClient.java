@@ -6,7 +6,6 @@ import kin.sdk.migration.exception.CorruptedDataException;
 import kin.sdk.migration.exception.CreateAccountException;
 import kin.sdk.migration.exception.CryptoException;
 import kin.sdk.migration.exception.DeleteAccountException;
-import kin.sdk.migration.exception.OperationFailedException;
 
 public interface IKinClient {
 
@@ -19,7 +18,7 @@ public interface IKinClient {
      *
      * @return KinAccount the account created store the key.
      */
-    public @NonNull
+    @NonNull
     IKinAccount addAccount() throws CreateAccountException;
 
     /**
@@ -27,46 +26,29 @@ public interface IKinClient {
      *
      * @return the account at the input index or null if there is no such account
      */
-    public IKinAccount getAccount(int index);
+    IKinAccount getAccount(int index);
 
     /**
      * @return true if there is an existing account
      */
-    public boolean hasAccount();
+    boolean hasAccount();
 
     /**
      * Returns the number of existing accounts
      */
     @SuppressWarnings("WeakerAccess")
-    public int getAccountCount();
+    int getAccountCount();
 
     /**
      * Deletes the account at input index (if it exists)
      */
-    public void deleteAccount(int index) throws DeleteAccountException;
+    void deleteAccount(int index) throws DeleteAccountException;
 
     /**
      * Deletes all accounts.
      */
     @SuppressWarnings("WeakerAccess")
-    public void clearAllAccounts();
-
-    /**
-     * Get the current minimum fee that the network charges per operation.
-     * This value is expressed in stroops.
-     *
-     * @return Request<Integer> - the minimum fee.
-     */
-    public IRequest<Long> getMinimumFee();
-
-    /**
-     * Get the current minimum fee that the network charges per operation.
-     * This value is expressed in stroops.
-     * <p><b>Note:</b> This method accesses the network, and should not be called on the android main thread.</p>
-     *
-     * @return the minimum fee.
-     */
-    long getMinimumFeeSync() throws OperationFailedException;
+    void clearAllAccounts();
 
     /**
      * Import an account from a JSON-formatted string.
@@ -75,7 +57,7 @@ public interface IKinClient {
      * @param passphrase The passphrase to decrypt the secret key.
      * @return The imported account
      */
-    public @NonNull
+    @NonNull
     IKinAccount importAccount(@NonNull String exportedJson, @NonNull String passphrase) throws CryptoException, CreateAccountException, CorruptedDataException;
 
 }

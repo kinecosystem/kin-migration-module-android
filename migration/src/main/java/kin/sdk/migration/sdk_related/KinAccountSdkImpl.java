@@ -2,19 +2,14 @@ package kin.sdk.migration.sdk_related;
 
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
-
-import org.json.JSONException;
-
-import java.io.IOException;
 import java.math.BigDecimal;
+import java.util.concurrent.Callable;
 
 import kin.sdk.Balance;
 import kin.sdk.EventListener;
 import kin.sdk.KinAccount;
 import kin.sdk.ListenerRegistration;
 import kin.sdk.PaymentInfo;
-import kin.sdk.Request;
-import kin.sdk.ResultCallback;
 import kin.sdk.Transaction;
 import kin.sdk.TransactionId;
 import kin.sdk.migration.exception.InsufficientKinException;
@@ -24,14 +19,12 @@ import kin.sdk.migration.interfaces.IEventListener;
 import kin.sdk.migration.interfaces.IKinAccount;
 import kin.sdk.migration.interfaces.IListenerRegistration;
 import kin.sdk.migration.interfaces.IPaymentInfo;
-import kin.sdk.migration.interfaces.IRequest;
-import kin.sdk.migration.interfaces.IResultCallback;
 import kin.sdk.migration.interfaces.ITransactionId;
 import kin.sdk.migration.interfaces.IWhitelistService;
-import kin.sdk.migration.interfaces.IWhitelistServiceCallbacks;
 import kin.sdk.migration.exception.AccountNotFoundException;
 import kin.sdk.migration.exception.CryptoException;
 import kin.sdk.migration.exception.OperationFailedException;
+import kin.utils.Request;
 
 public class KinAccountSdkImpl implements IKinAccount {
 
@@ -51,41 +44,35 @@ public class KinAccountSdkImpl implements IKinAccount {
 
     @NonNull
     @Override
-    public IRequest<ITransactionId> sendTransaction(@NonNull String publicAddress, @NonNull BigDecimal amount) {
+    public Request<ITransactionId> sendTransaction(@NonNull String publicAddress, @NonNull BigDecimal amount) {
         return sendTransaction(publicAddress, amount, null);
     }
 
     @NonNull
     @Override
-    public IRequest<ITransactionId> sendTransaction(@NonNull String publicAddress, @NonNull BigDecimal amount, @Nullable String memo) {
-        final Request<Transaction> buildTransactionRequest = kinAccount.buildTransaction(publicAddress, amount, 0, memo);// 0 because currently in the migration module we are supporting only whitelist
-        return new IRequest<ITransactionId> () {
-
+    public Request<ITransactionId> sendTransaction(final @NonNull String publicAddress,
+            final @NonNull BigDecimal amount, final @Nullable String memo) { //TODO what is the problem with the memo here?
+        return new Request<>(new Callable<ITransactionId>() {
             @Override
-            public void run(final IResultCallback<ITransactionId> callback) {
-                buildTransactionRequest.run(new BuildTransactionCallback(callback));
+            public ITransactionId call() throws Exception {
+                return sendTransactionSync(publicAddress, amount, memo);
             }
-
-            @Override
-            public void cancel(boolean mayInterruptIfRunning) {
-                buildTransactionRequest.cancel(mayInterruptIfRunning);
-            }
-        };
+        });
     }
 
     @NonNull
     @Override
-    public ITransactionId sendTransactionSync(@NonNull String publicAddress, @NonNull BigDecimal amount) throws OperationFailedException, IOException, JSONException {
+    public ITransactionId sendTransactionSync(@NonNull String publicAddress, @NonNull BigDecimal amount) throws OperationFailedException {
         return sendTransactionSync(publicAddress, amount, null);
     }
 
     @NonNull
     @Override
-    public ITransactionId sendTransactionSync(@NonNull String publicAddress, @NonNull BigDecimal amount, @Nullable String memo) throws OperationFailedException, IOException, JSONException {
+    public ITransactionId sendTransactionSync(@NonNull String publicAddress, @NonNull BigDecimal amount, @Nullable String memo) throws OperationFailedException {
         try {
             Transaction transaction = kinAccount.buildTransactionSync(publicAddress, amount, 0, memo);
             if (whitelistService != null) {
-                String whitelistTransaction = whitelistService.whitelistTransactionSync(new KinSdkTransaction(transaction).getWhitelistableTransaction());
+                String whitelistTransaction = whitelistService.whitelistTransaction(new KinSdkTransaction(transaction).getWhitelistableTransaction());
                 TransactionId transactionId = kinAccount.sendWhitelistTransactionSync(whitelistTransaction);
                 return new KinSdkTransactionId(transactionId);
             } else {
@@ -104,12 +91,12 @@ public class KinAccountSdkImpl implements IKinAccount {
 
     @NonNull
     @Override
-    public IRequest<IBalance> getBalance() {
-        final Request<Balance> request = kinAccount.getBalance();
-        return new KinSdkRequest<>(request, new KinSdkRequest.Transformer<IBalance, Balance>() {
+    public Request<IBalance> getBalance() {
+        return new Request<>(new Callable<IBalance>() {
+
             @Override
-            public IBalance transform(Balance balance) {
-                return new KinSdkBalance(balance);
+            public IBalance call() throws Exception {
+                return getBalanceSync();
             }
         });
     }
@@ -129,8 +116,8 @@ public class KinAccountSdkImpl implements IKinAccount {
 
     @NonNull
     @Override
-    public IRequest<Void> activate() {
-        return new KinSdkRequest<>(null, null);
+    public Request<Void> activate() {
+        return new Request<>( null);
     }
 
     @Override
@@ -139,12 +126,11 @@ public class KinAccountSdkImpl implements IKinAccount {
     }
 
     @Override
-    public IRequest<Integer> getStatus() {
-        final Request<Integer> request = kinAccount.getStatus();
-        return new KinSdkRequest<>(request, new KinSdkRequest.Transformer<Integer, Integer>() {
+    public Request<Integer> getStatus() {
+        return new Request<>(new Callable<Integer>() {
             @Override
-            public Integer transform(Integer status) {
-                return status;
+            public Integer call() throws Exception {
+                return getStatusSync();
             }
         });
     }
@@ -198,64 +184,6 @@ public class KinAccountSdkImpl implements IKinAccount {
             }
         });
         return new KinSdkListenerRegistration(listenerRegistration);
-    }
-
-    private class BuildTransactionCallback implements ResultCallback<Transaction> {
-
-        private final IResultCallback<ITransactionId> callback;
-
-        BuildTransactionCallback(IResultCallback<ITransactionId> callback) {
-            this.callback = callback;
-        }
-
-        @Override
-        public void onResult(Transaction transaction) {
-            if (whitelistService != null) {
-                try {
-                    whitelistService.whitelistTransaction(new KinSdkTransaction(transaction).getWhitelistableTransaction(), new WhitelistServiceListener(callback));
-                } catch (JSONException e) {
-                    onError(e);
-                }
-            } else {
-                onError(new IllegalArgumentException("whitelist service listener is null"));
-            }
-        }
-
-        // TODO: 06/12/2018  check for 4045 error from whitelist service
-        @Override
-        public void onError(Exception e) {
-            callback.onError(e);
-        }
-    }
-
-    private class WhitelistServiceListener implements IWhitelistServiceCallbacks {
-
-        private final IResultCallback<ITransactionId> callback;
-
-        WhitelistServiceListener(IResultCallback<ITransactionId> callback) {
-            this.callback = callback;
-        }
-
-        @Override
-        public void onSuccess(String whitelistTransaction) {
-            if (kinAccount != null) {
-                Request<TransactionId> request = kinAccount.sendWhitelistTransaction(whitelistTransaction);
-                new KinSdkRequest<>(request, new KinSdkRequest.Transformer<ITransactionId, TransactionId>() {
-                    @Override
-                    public ITransactionId transform(TransactionId transactionId) {
-                        return new KinSdkTransactionId(transactionId);
-                    }
-                }).run(callback);
-            } else {
-                callback.onError(new AccountNotFoundException("no account found"));
-            }
-
-        }
-
-        @Override
-        public void onFailure(Exception e) {
-            callback.onError(e);
-        }
     }
 
 }

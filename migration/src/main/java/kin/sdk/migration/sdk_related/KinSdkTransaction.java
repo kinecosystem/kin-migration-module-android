@@ -32,11 +32,6 @@ public class KinSdkTransaction implements ITransaction {
     }
 
     @Override
-    public int getFee() {
-        return transaction.getFee();
-    }
-
-    @Override
     public String getMemo() {
         return transaction.getMemo();
     }
@@ -45,11 +40,6 @@ public class KinSdkTransaction implements ITransaction {
     public TransactionId getId() {
         return transaction.getId();
     }
-
-//    @Override
-//    public kin.base.Transaction getStellarTransaction() {
-//        return transaction.get;
-//    }
 
     @Override
     public IWhitelistableTransaction getWhitelistableTransaction() {

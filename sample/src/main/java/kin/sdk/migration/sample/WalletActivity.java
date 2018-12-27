@@ -11,9 +11,9 @@ import kin.sdk.migration.interfaces.IAccountStatus;
 import kin.sdk.migration.interfaces.IBalance;
 import kin.sdk.migration.interfaces.IKinAccount;
 import kin.sdk.migration.interfaces.IListenerRegistration;
-import kin.sdk.migration.interfaces.IRequest;
-import kin.sdk.migration.interfaces.IResultCallback;
 import kin.sdk.migration.exception.DeleteAccountException;
+import kin.utils.Request;
+import kin.utils.ResultCallback;
 
 /**
  * Responsible for presenting details about the account
@@ -28,8 +28,8 @@ public class WalletActivity extends BaseActivity {
     private TextView balance, status, publicKey;
     private View onboardBtn;
     private View balanceProgress, statusProgress;
-    private IRequest<IBalance> balanceRequest;
-    private IRequest<Integer> statusRequest;
+    private Request<IBalance> balanceRequest;
+    private Request<Integer> statusRequest;
     private IKinAccount account;
     private IListenerRegistration balanceListenerRegistration;
 
@@ -169,7 +169,7 @@ public class WalletActivity extends BaseActivity {
                     }
                 });
             } else {
-                statusRequest.run(new IResultCallback<Integer>() {
+                statusRequest.run(new ResultCallback<Integer>() {
                     @Override
                     public void onResult(Integer result) {
                         status.setText(accountStatusToString(result));
@@ -214,7 +214,7 @@ public class WalletActivity extends BaseActivity {
                     }
                 });
             } else {
-                balanceRequest.run(new IResultCallback<IBalance>() {
+                balanceRequest.run(new ResultCallback<IBalance>() {
                     @Override
                     public void onResult(IBalance result) {
                         balance.setText(result.value().toPlainString());

@@ -38,6 +38,10 @@ dependencies {
     implementation fileTree(dir: 'libs', include: '*.jar')
     implementation supportDependencies.supportAnnotations
 
+    implementation 'com.github.kinecosystem:kin-sdk-android:3b3f0c0dfe'
+    implementation 'com.github.kinecosystem:kin-core-android:9a49d6d5c7'
+    api 'com.github.kinecosystem:kin-utils-android:1.1'
+
     testImplementation testingDependencies.junit
     testImplementation testingDependencies.mockito
     testImplementation testingDependencies.mockWebServer
@@ -52,8 +56,6 @@ dependencies {
     androidTestImplementation testingDependencies.kotlinJUnitTest
 
 
-    implementation 'com.github.kinecosystem:kin-sdk-android:337923cc13'
-    implementation 'com.github.kinecosystem:kin-core-android:9a49d6d5c7'
 
 }
 

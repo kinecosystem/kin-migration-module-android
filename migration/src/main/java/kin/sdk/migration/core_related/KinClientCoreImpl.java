@@ -9,7 +9,6 @@ import kin.core.ServiceProvider;
 import kin.sdk.migration.interfaces.IEnvironment;
 import kin.sdk.migration.interfaces.IKinAccount;
 import kin.sdk.migration.interfaces.IKinClient;
-import kin.sdk.migration.interfaces.IRequest;
 import kin.sdk.migration.exception.CorruptedDataException;
 import kin.sdk.migration.exception.CreateAccountException;
 import kin.sdk.migration.exception.CryptoException;
@@ -75,23 +74,12 @@ public class KinClientCoreImpl implements IKinClient {
         kinClient.clearAllAccounts();
     }
 
-    @Override
-    public IRequest<Long> getMinimumFee() {
-        return null;
-    }
-
-    @Override
-    public long getMinimumFeeSync() {
-        return 0;
-    }
-
     @NonNull
     @Override
     public IKinAccount importAccount(@NonNull String exportedJson, @NonNull String passphrase)
         throws CryptoException, CreateAccountException, CorruptedDataException {
         try {
             KinAccount kinAccount = kinClient.importAccount(exportedJson, passphrase);
-            // TODO: 06/12/2018 handle import
             return new KinAccountCoreImpl(kinAccount);
         } catch (kin.core.exception.CryptoException e) {
             throw new CryptoException(e.getMessage(), e.getCause());

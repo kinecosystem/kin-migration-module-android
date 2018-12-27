@@ -2,15 +2,12 @@ package kin.sdk.migration.sdk_related;
 
 import android.content.Context;
 import android.support.annotation.NonNull;
-
 import kin.sdk.Environment;
 import kin.sdk.KinAccount;
 import kin.sdk.KinClient;
-import kin.sdk.migration.exception.OperationFailedException;
 import kin.sdk.migration.interfaces.IEnvironment;
 import kin.sdk.migration.interfaces.IKinAccount;
 import kin.sdk.migration.interfaces.IKinClient;
-import kin.sdk.migration.interfaces.IRequest;
 import kin.sdk.migration.interfaces.IWhitelistService;
 import kin.sdk.migration.exception.CorruptedDataException;
 import kin.sdk.migration.exception.CreateAccountException;
@@ -78,32 +75,12 @@ public class KinClientSdkImpl implements IKinClient {
         kinClient.clearAllAccounts();
     }
 
-    @Override
-    public IRequest<Long> getMinimumFee() {
-        return new KinSdkRequest<>(kinClient.getMinimumFee(), new KinSdkRequest.Transformer<Long, Long>() {
-            @Override
-            public Long transform(Long fee) {
-                return fee;
-            }
-        });
-    }
-
-    @Override
-    public long getMinimumFeeSync() throws OperationFailedException {
-        try {
-            return kinClient.getMinimumFeeSync();
-        } catch (kin.sdk.exception.OperationFailedException e) {
-            throw new OperationFailedException(e.getMessage(), e.getCause());
-        }
-    }
-
     @NonNull
     @Override
     public IKinAccount importAccount(@NonNull String exportedJson, @NonNull String passphrase)
             throws CryptoException, CreateAccountException, CorruptedDataException {
         try {
             KinAccount kinAccount = kinClient.importAccount(exportedJson, passphrase);
-            // TODO: 06/12/2018 handle import
             return new KinAccountSdkImpl(kinAccount, whitelistService);
         } catch (kin.sdk.exception.CryptoException e) {
             throw new CryptoException(e.getMessage(), e.getCause());

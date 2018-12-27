@@ -42,7 +42,6 @@ script:
   - ./gradlew :sample:assembleDebug
   - ./gradlew testDebugUnitTest
   - ./gradlew connectedAndroidTest
-#  - ./gradlew jacocoTestReport  -Pandroid.testInstrumentationRunnerArguments.notClass=kin.sdk.migration.KinAccountIntegrationTest --info
 
 after_success:
   - bash <(curl -s https://codecov.io/bash)

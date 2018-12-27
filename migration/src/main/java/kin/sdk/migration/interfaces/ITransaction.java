@@ -13,13 +13,9 @@ public interface ITransaction {
 
     BigDecimal getAmount();
 
-    int getFee();
-
     String getMemo();
 
     TransactionId getId();
-
-//    kin.base.Transaction getStellarTransaction();
 
     IWhitelistableTransaction getWhitelistableTransaction();
 

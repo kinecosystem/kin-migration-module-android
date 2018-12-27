@@ -10,6 +10,7 @@ import org.json.JSONObject;
 import java.io.IOException;
 import java.util.concurrent.TimeUnit;
 
+import kin.sdk.migration.exception.WhitelistTransactionFailedException;
 import kin.sdk.migration.interfaces.IWhitelistableTransaction;
 import kin.sdk.migration.interfaces.IWhitelistService;
 import kin.sdk.migration.interfaces.IWhitelistServiceCallbacks;
@@ -40,44 +41,29 @@ class WhitelistService implements IWhitelistService {
     }
 
     @Override
-    public void whitelistTransaction(IWhitelistableTransaction whitelistableTransaction, final IWhitelistServiceCallbacks callbacks) throws JSONException {
-        RequestBody requestBody = RequestBody.create(JSON, toJson(whitelistableTransaction));
-        Request request = new Request.Builder()
-                .url(URL_WHITELISTING_SERVICE)
-                .post(requestBody)
-                .build();
-        okHttpClient.newCall(request)
-                .enqueue(new Callback() {
-                    @Override
-                    public void onFailure(@NonNull Call call, @NonNull IOException e) {
-                        fireOnFailure(whitelistServiceListener, e);
-                        if (callbacks != null) {
-                            callbacks.onFailure(e);
-                        }
-                    }
-
-                    @Override
-                    public void onResponse(@NonNull Call call, @NonNull Response response) throws IOException {
-                        handleResponse(response, callbacks);
-
-                    }
-                });
-    }
-
-    @Override
-    public String whitelistTransactionSync(IWhitelistableTransaction whitelistableTransaction) throws IOException, JSONException {
+    public String whitelistTransaction(IWhitelistableTransaction whitelistableTransaction) throws WhitelistTransactionFailedException {
         String whitelistTransaction = null;
-        RequestBody requestBody = RequestBody.create(JSON, toJson(whitelistableTransaction));
+        RequestBody requestBody;
+        try {
+            requestBody = RequestBody.create(JSON, toJson(whitelistableTransaction));
+        } catch (JSONException e) {
+            throw new WhitelistTransactionFailedException(e);
+        }
         Request request = new Request.Builder()
                 .url(URL_WHITELISTING_SERVICE)
                 .post(requestBody)
                 .build();
-        Response response = okHttpClient.newCall(request).execute();
-        if (response != null) {
-            ResponseBody body = response.body();
-            if (body != null) {
-                whitelistTransaction = body.string();
+        Response response = null;
+        try {
+            response = okHttpClient.newCall(request).execute();
+            if (response != null) {
+                ResponseBody body = response.body();
+                if (body != null) {
+                    whitelistTransaction = body.string();
+                }
             }
+        } catch (IOException e) {
+            throw new WhitelistTransactionFailedException(e);
         }
         return whitelistTransaction;
     }

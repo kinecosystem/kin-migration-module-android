@@ -2,13 +2,14 @@ package kin.sdk.migration.sample;
 
 import android.content.Context;
 import android.view.View;
-import kin.sdk.migration.interfaces.IResultCallback;
+
+import kin.utils.ResultCallback;
 
 /**
  * Will hide a progressBar and display result on a displayView passed at constructor
  * Holds the views as weakReferences and clears the references when canceled
  */
-public abstract class DisplayCallback<T> implements IResultCallback<T> {
+public abstract class DisplayCallback<T> implements ResultCallback<T> {
 
     private static final String TAG = DisplayCallback.class.getSimpleName();
     private View progressBar;
