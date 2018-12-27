@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Kin Migration Sample App</string>
+    <string name="kin_foundation">Kin Foundation</string>
+    <string name="core_test_net">Kin2 Test Net</string>
+    <string name="sdk_test_net">New Kin Test Net</string>
+    <string name="core_main_net">Kin2 Main Net</string>
+    <string name="sdk_main_net">New Kin Main Net</string>
+    <string name="reveal">Reveal</string>
+    <string name="refresh">Refresh</string>
+    <string name="public_address">Public Address:</string>
+    <string name="amount">Amount:</string>
+    <string name="fee">Fee:</string>
+    <string name="copy_to_clipboard">Copy to clipboard</string>
+    <string name="copied_to_clipboard">Copied to clipboard</string>
+    <string name="export_key_store">Export Wallet</string>
+    <string name="balance">Balance</string>
+    <string name="transaction">Transaction</string>
+    <string name="send_transaction">Send Transaction</string>
+    <string name="onboard">Onboard Account</string>
+    <string name="delete_wallet">Delete Wallet</string>
+    <string name="delete_wallet_warning">Are you sure you want to delete your wallet?</string>
+    <string name="delete">Delete</string>
+    <string name="create_wallet">Create Wallet</string>
+    <string name="error_no_message">Some error occurred - no message</string>
+    <string name="ok">Ok</string>
+    <string name="cancel">Cancel</string>
+    <string name="balance_error">Error</string>
+    <string name="memo">Memo</string>
+    <string name="payments_listener">Payments Listener</string>
+    <string name="btn_start">Add Listener</string>
+    <string name="btn_stop">Remove</string>
+    <string name="to">To:</string>
+    <string name="from">From:</string>
+    <string name="hash">Hash:</string>
+    <string name="created_at">Created at:</string>
+    <string name="enter_passphrase">Enter passphrase</string>
+    <string name="import_wallet">Import Wallet</string>
+    <string name="enter_exported_json">Enter exported json</string>
+    <string name="retrieve_minimum_fee">Retrieve Minimum Fee</string>
+    <string name="whitelist">whitelist</string>
+</resources>
