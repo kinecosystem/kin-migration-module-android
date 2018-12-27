@@ -51,7 +51,7 @@ public class KinAccountSdkImpl implements IKinAccount {
     @NonNull
     @Override
     public Request<ITransactionId> sendTransaction(final @NonNull String publicAddress,
-            final @NonNull BigDecimal amount, final @Nullable String memo) { //TODO what is the problem with the memo here?
+            final @NonNull BigDecimal amount, final @Nullable String memo) {
         return new Request<>(new Callable<ITransactionId>() {
             @Override
             public ITransactionId call() throws Exception {

@@ -70,21 +70,4 @@ public class WhitelistServiceForTest implements IWhitelistService {
         return jo.toString();
     }
 
-    private void handleResponse(@NonNull Response response, IWhitelistServiceCallbacks callbacks) throws IOException {
-        if (callbacks != null) {
-            if (response.body() != null) {
-                callbacks.onSuccess(response.body().string());
-            } else {
-                Exception exception = new Exception("Whitelist - no body, response code is " + response.code());
-                callbacks.onFailure(exception);
-            }
-            int code = response.code();
-            response.close();
-            if (code != 200) {
-                Exception exception = new Exception("Whitelist - response code is " + response.code());
-                callbacks.onFailure(exception);
-            }
-        }
-    }
-
 }
