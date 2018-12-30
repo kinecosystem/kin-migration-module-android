@@ -25,7 +25,7 @@ import okhttp3.ResponseBody;
 
 class WhitelistService implements IWhitelistService {
 
-    private static final String URL_WHITELISTING_SERVICE = "http://18.206.35.110:3000/whitelist";
+    private static final String URL_WHITELISTING_SERVICE = "http://34.239.111.38:3000/whitelist";
     private static final MediaType JSON = MediaType.parse("application/json; charset=utf-8");
 
     private final OkHttpClient okHttpClient;
@@ -53,7 +53,7 @@ class WhitelistService implements IWhitelistService {
                 .url(URL_WHITELISTING_SERVICE)
                 .post(requestBody)
                 .build();
-        Response response = null;
+        Response response;
         try {
             response = okHttpClient.newCall(request).execute();
             if (response != null) {

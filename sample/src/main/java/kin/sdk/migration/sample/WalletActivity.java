@@ -210,7 +210,9 @@ public class WalletActivity extends BaseActivity {
                 balanceRequest.run(new DisplayCallback<IBalance>(balanceProgress, balance) {
                     @Override
                     public void displayResult(Context context, View view, IBalance result) {
-                        ((TextView) view).setText(result.value().toPlainString());
+                        if (view != null && result != null) {
+                            ((TextView) view).setText(result.value().toPlainString());
+                        }
                     }
                 });
             } else {

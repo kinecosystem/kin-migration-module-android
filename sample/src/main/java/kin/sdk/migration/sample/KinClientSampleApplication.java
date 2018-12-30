@@ -22,7 +22,6 @@ public class KinClientSampleApplication extends Application {
 
     private IKinClient kinClient;
     private WhitelistService whitelistService;
-    private MigrationManager migrationManager;
     private boolean isKinSdkVersion;
 
     public enum NetWorkType {
@@ -30,6 +29,16 @@ public class KinClientSampleApplication extends Application {
         SDK_MAIN,
         CORE_TEST,
         SDK_TEST
+    }
+
+    @Override
+    public void onCreate() {
+        super.onCreate();
+
+        StrictMode.setVmPolicy(new VmPolicy.Builder()
+                .detectAll()
+                .penaltyLog()
+                .build());
     }
 
     public void createKinClient(NetWorkType type, String appId, MigrationManagerListener migrationManagerListener) {
@@ -43,7 +52,7 @@ public class KinClientSampleApplication extends Application {
              // TODO: 24/12/2018 handle it after we have production urls
         }
         whitelistService = new WhitelistService();
-        migrationManager = new MigrationManager(this, appId, migrationNetworkInfo,
+        MigrationManager migrationManager = new MigrationManager(this, appId, migrationNetworkInfo,
                 () -> isKinSdkVersion, whitelistService);
         try {
             migrationManager.startMigration(new MigrationManagerListener() {
@@ -61,16 +70,6 @@ public class KinClientSampleApplication extends Application {
         } catch (MigrationInProcessException e) {
            migrationManagerListener.onError(e);
         }
-    }
-
-    @Override
-    public void onCreate() {
-        super.onCreate();
-
-        StrictMode.setVmPolicy(new VmPolicy.Builder()
-            .detectAll()
-            .penaltyLog()
-            .build());
     }
 
     public IKinClient getKinClient() {

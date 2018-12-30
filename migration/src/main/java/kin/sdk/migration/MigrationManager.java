@@ -7,14 +7,20 @@ import android.os.Looper;
 import android.support.annotation.NonNull;
 import android.util.Log;
 
+import com.google.gson.Gson;
+import com.google.gson.reflect.TypeToken;
+
+import org.stellar.sdk.responses.HttpResponseException;
+
 import java.io.IOException;
+import java.lang.reflect.Type;
+import java.util.Map;
 import java.util.concurrent.TimeUnit;
+
 import kin.core.ServiceProvider;
 import kin.sdk.Environment;
 import kin.sdk.migration.core_related.KinAccountCoreImpl;
 import kin.sdk.migration.core_related.KinClientCoreImpl;
-import kin.sdk.migration.exception.AccountNotActivatedException;
-import kin.sdk.migration.exception.AccountNotFoundException;
 import kin.sdk.migration.exception.FailedToResolveSdkVersionException;
 import kin.sdk.migration.exception.MigrationFailedException;
 import kin.sdk.migration.exception.MigrationInProcessException;
@@ -25,36 +31,41 @@ import kin.sdk.migration.interfaces.ITransactionId;
 import kin.sdk.migration.interfaces.IWhitelistService;
 import kin.sdk.migration.interfaces.MigrationManagerListener;
 import kin.sdk.migration.sdk_related.KinClientSdkImpl;
+import okhttp3.Call;
 import okhttp3.Callback;
 import okhttp3.Interceptor;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
+import okhttp3.RequestBody;
 import okhttp3.Response;
+import okhttp3.ResponseBody;
 
 public class MigrationManager {
 
-    private static final String TAG = MigrationManager.class.getSimpleName();
+    private static final String TAG = MigrationManager.class.getSimpleName(); // TODO: 30/12/2018 Add logs
     private final static String MIGRATION_MODULE_PREFERENCE_FILE_KEY = "MIGRATION_MODULE_PREFERENCE_FILE_KEY";
     private final static String MIGRATION_COMPLETED_KEY = "MIGRATION_COMPLETED_KEY";
-    private static final String URL_MIGRATE_ACCOUNT = "http";
+    private final static int TIMEOUT = 30;
+    private final static int MAX_RETRIES = 3;
+    private static final String URL_MIGRATE_ACCOUNT_SERVICE = "http://10.4.59.1:8000/migrate?address=";
 
-    private final Context context;
+    private Context context;
     private final String appId;
-    private final MigrationNetworkInfo migrationNetworkInfo;
-    private final IKinVersionProvider kinVersionProvider;
-    private final IWhitelistService whitelistService;
+    private MigrationNetworkInfo migrationNetworkInfo;
+    private IKinVersionProvider kinVersionProvider;
+    private IWhitelistService whitelistService;
     private String storeKey;
     private Handler handler;
     private OkHttpClient okHttpClient;
     private boolean inMigrationProcess; // defence against multiple calls
 
     public MigrationManager(@NonNull Context context, @NonNull String appId, @NonNull MigrationNetworkInfo migrationNetworkInfo,
-                            @NonNull IKinVersionProvider kinVersionProvider, @NonNull IWhitelistService whitelistService) { // TODO: 06/12/2018 maybe also add the eventLogger
+                            @NonNull IKinVersionProvider kinVersionProvider, @NonNull IWhitelistService whitelistService) { // TODO: 06/12/2018 we should probably also add the eventLogger
         this(context, appId, migrationNetworkInfo, kinVersionProvider, whitelistService, "");
     }
 
     public MigrationManager(@NonNull Context context, @NonNull String appId, @NonNull MigrationNetworkInfo migrationNetworkInfo,
-                            @NonNull IKinVersionProvider kinVersionProvider, @NonNull IWhitelistService whitelistService, @NonNull String storeKey) { // TODO: 06/12/2018 maybe also add the eventLogger
+                            @NonNull IKinVersionProvider kinVersionProvider, @NonNull IWhitelistService whitelistService, @NonNull String storeKey) {
         this.context = context;
         this.appId = appId;
         this.migrationNetworkInfo = migrationNetworkInfo;
@@ -66,6 +77,7 @@ public class MigrationManager {
     /**
      * Starting the migration process from Kin2(Core library) to the new Kin(Sdk library - One Blockchain).
      * <p><b>Note:</b> This method internally uses a background thread and it is also access the network.</p>
+     *<p><b>Note:</b> If all the migration process will be completed then this method minimum time is 6 seconds.</p>
      * @param migrationManagerListener is a listener so the caller can get a callback for completion or error(on the UI thread).
      * @throws MigrationInProcessException is thrown in case this method is called while it is not finished.
      */
@@ -76,6 +88,7 @@ public class MigrationManager {
             new Thread(new Runnable() {
                 @Override
                 public void run() {
+                    Log.d(TAG, "starting the migration process in a background thread");
                     createHttpClient();
                     startMigrationProcess(migrationManagerListener);
                 }
@@ -89,23 +102,28 @@ public class MigrationManager {
         RetryInterceptor retryInterceptor = new RetryInterceptor();
         handler = new Handler(Looper.getMainLooper()); // TODO: 23/12/2018 maybe put it in the constructor
         okHttpClient = new OkHttpClient.Builder()
-                .connectTimeout(20, TimeUnit.SECONDS)
-                .readTimeout(20, TimeUnit.SECONDS)
+                .connectTimeout(TIMEOUT, TimeUnit.SECONDS)
+                .readTimeout(TIMEOUT, TimeUnit.SECONDS)
                 .addInterceptor(retryInterceptor)
                 .build();
     }
 
     private void startMigrationProcess(final MigrationManagerListener migrationManagerListener) {
         if (isMigrationAlreadyCompleted()) {
+            Log.d(TAG, "startMigrationProcess: migration is already completed in the past");
             // TODO: 24/12/2018 it really didn't complete because actually it was already completed in the past so need to pass this info to developer or change method name
             fireOnComplete(migrationManagerListener, initNewKin(), false);
         } else {
             try {
                 if (kinVersionProvider.isKinSdkVersion()) {
+                    Log.d(TAG, "startMigrationProcess: new sdk.");
                     KinClientCoreImpl kinClientCore = initKinCore();
                     if (kinClientCore.hasAccount()) {
-                        if (startBurnAccountProcess(kinClientCore)) {
-                            migrateToNewKin(migrationManagerListener);
+                        KinAccountCoreImpl account = (KinAccountCoreImpl) kinClientCore.getAccount(kinClientCore.getAccountCount() - 1);
+                        String publicAddress = account.getPublicAddress();
+                        Log.d(TAG, "startMigrationProcess: retrieve this account: " + publicAddress);
+                        if (startBurnAccountProcess(publicAddress, account)) {
+                            migrateToNewKin(publicAddress, migrationManagerListener);
                         } else {
                             fireOnError(migrationManagerListener, new MigrationFailedException("Account could not be burn because of some unexpected exception"));
                         }
@@ -129,16 +147,15 @@ public class MigrationManager {
 
     /**
      * Start the burn account process which checks if the account was already burned and if not then burned it.
-     * @param kinClientCore is the kin client from the core library.
+     *
+     * @param account is the kin account.
      * @return true if the process completed. Also note that it can complete even if the account was already burned.
      * @throws MigrationFailedException a general Migration Exception with a concrete message about the exception.
      */
-    private boolean startBurnAccountProcess(KinClientCoreImpl kinClientCore) throws OperationFailedException {
-        // TODO: 24/12/2018 check if account count -1 really works
-        KinAccountCoreImpl account = (KinAccountCoreImpl) kinClientCore.getAccount(kinClientCore.getAccountCount() -1);
-        String publicAddress = account.getPublicAddress();
+    private boolean startBurnAccountProcess(final String publicAddress, final KinAccountCoreImpl account) throws OperationFailedException {
         if (publicAddress != null) {
             if (isAccountBurned(publicAddress, account)) {
+                Log.d(TAG, "startBurnAccountProcess: account is already burned");
                 return true;
             } else {
                 return burnAccount(publicAddress, account);
@@ -148,17 +165,26 @@ public class MigrationManager {
         }
     }
 
-    private boolean isAccountBurned(String publicAddress, KinAccountCoreImpl kinAccountCore) throws OperationFailedException {
+    private boolean isAccountBurned(final String publicAddress, final KinAccountCoreImpl kinAccountCore) throws OperationFailedException {
         if (publicAddress != null) {
-            try {
-                return kinAccountCore.isAccountBurned(publicAddress);
-            } catch (AccountNotFoundException e) {
-                throw new MigrationFailedException("Account " + e.getAccountId() + " was not found");
-            } catch (AccountNotActivatedException e) {
-                throw new MigrationFailedException("Account " + e.getAccountId() + " is not activated");
-            } catch (OperationFailedException e) {
-                // TODO: 25/12/2018 add retry mechanism for specific errors
-                throw new MigrationFailedException(e.getMessage(), e.getCause());
+            int retryCounter = 0;
+            while (true) {
+                try {
+                    Log.d(TAG, "isAccountBurned: ");
+                    return kinAccountCore.isAccountBurned(publicAddress);
+                } catch (OperationFailedException e) {
+                    Throwable cause = e.getCause();
+                    // Check if it is an http exception with 5xx code and if yes then retry until max tries reached.
+                    if (cause instanceof HttpResponseException) {
+                        HttpResponseException httpException = (HttpResponseException) cause;
+                        if (httpException.getStatusCode() >= 500 && retryCounter < MAX_RETRIES) {
+                            retryCounter++;
+                            Log.d(TAG, "isAccountBurned: retry number " + retryCounter);
+                            continue;
+                        }
+                    }
+                    throw new MigrationFailedException(e.getMessage(), e.getCause());
+                }
             }
         } else {
             throw new MigrationFailedException("account not valid");
@@ -166,17 +192,84 @@ public class MigrationManager {
     }
 
     private boolean burnAccount(String publicAddress, KinAccountCoreImpl account) throws MigrationFailedException {
-        try {
-            ITransactionId transactionId = account.sendBurnTransactionSync(publicAddress);
-            return transactionId.id() != null && !transactionId.id().isEmpty();
-        } catch (AccountNotFoundException e) {
-            throw new MigrationFailedException("Account " + e.getAccountId() + " was not found");
-        } catch (AccountNotActivatedException e) {
-            throw new MigrationFailedException("Account " + e.getAccountId() + " is not activated");
-        } catch (OperationFailedException e) {
-            // TODO: 25/12/2018 add retry mechanism for specific errors
-            throw new MigrationFailedException(e.getMessage(), e.getCause());
+        int retryCounter = 0;
+        while (true) {
+            try {
+                Log.d(TAG, "burnAccount: ");
+                ITransactionId transactionId = account.sendBurnTransactionSync(publicAddress);
+                return transactionId.id() != null && !transactionId.id().isEmpty();
+            } catch (OperationFailedException e) {
+                Throwable cause = e.getCause();
+                // Check if it is an http exception with 5xx code and if yes then retry until max tries reached.
+                if (cause instanceof HttpResponseException) { // TODO: 30/12/2018 maybe need to catch more exception for the retry? like java.net.ConnectException?
+                    HttpResponseException httpException = (HttpResponseException) cause;
+                    if (httpException.getStatusCode() >= 500 && retryCounter < MAX_RETRIES) {
+                        retryCounter++;
+                        Log.d(TAG, "burnAccount: retry number " + retryCounter);
+                        continue;
+                    }
+                }
+                throw new MigrationFailedException(e.getMessage(), e.getCause());
+            }
         }
+    }
+
+    private void migrateToNewKin(final String publicAddress, final MigrationManagerListener migrationManagerListener) {
+        Log.d(TAG, "migrateToNewKin: sending the request to migrate");
+        sendRequest(URL_MIGRATE_ACCOUNT_SERVICE + publicAddress, new Callback() {
+            @Override
+            public void onFailure(@NonNull Call call, @NonNull IOException e) {
+                fireOnError(migrationManagerListener, e);
+            }
+
+            @Override
+            public void onResponse(@NonNull Call call, @NonNull Response response) {
+                // TODO: 23/12/2018 if this is running on the ui thread then do the work a background thread
+                // TODO: 23/12/2018 check if response is ok and that indeed the account has been burned
+                if (response.isSuccessful()) {
+                    fireOnComplete(migrationManagerListener, initNewKin(), true);
+                } else {
+                    fireOnError(migrationManagerListener, generateMigrationException(response.body()));
+                }
+            }
+        });
+    }
+
+    private MigrationFailedException generateMigrationException(ResponseBody body) {
+        // check if account has been migrated successfully and if yes then complete the process and update the persistent state
+        Log.d(TAG, "generateMigrationException: ");
+        MigrationFailedException exception;
+        if (body != null) {
+            try {
+                Type type = new TypeToken<Map<String, String>>() {
+                }.getType();
+                Map<String, String> error = new Gson().fromJson(body.string(), type);
+                final String code = error.get("code");
+                String message = error.get("message");
+                switch (code) { // TODO: 30/12/2018 maybe do something specif with each error
+//                    case "4001":
+//
+//                        break;
+//                    case "4002":
+//
+//                        break;
+//                    case "4003":
+//
+//                        break;
+//                    case "4041":
+//
+//                        break;
+                    default:
+                        exception = new MigrationFailedException();
+                        break;
+                }
+            } catch (IOException e) {
+                exception = new MigrationFailedException(e);
+            }
+        } else {
+            exception = new MigrationFailedException();
+        }
+        return exception;
     }
 
     @NonNull
@@ -198,24 +291,10 @@ public class MigrationManager {
         return kinClient;
     }
 
-    private void migrateToNewKin(final MigrationManagerListener migrationManagerListener) {
-//        sendRequest(URL_MIGRATE_SERVICE, new Callback() {
-//            @Override
-//            public void onFailure(@NonNull Call call, @NonNull IOException e) {
-//                // TODO: 23/12/2018 implement retry mechanism only on errors that require a retry
-//            }
-//
-//            @Override
-//            public void onResponse(@NonNull Call call, @NonNull Response response) throws IOException {
-//                // TODO: 23/12/2018 if this is running on the ui thread then do the work a background thread
-//                // TODO: 23/12/2018 check if response is ok and that indeed the account has been burned
-//                if (accountHasMigrated(response)) {
-//                    migrateToNewKin(); // TODO or insert a retry in the interceptors
-//                } else {
-//                    // TODO: 23/12/2018  implement retry mechanism because somehow it didn't migrate
-//                }
-//            }
-//        });
+    private void saveMigrationCompleted() {
+        // save migration completion status from the persistent state.
+        SharedPreferences sharedPreferences = getSharedPreferences();
+        sharedPreferences.edit().putBoolean(MIGRATION_COMPLETED_KEY, true).apply();
     }
 
     private boolean isMigrationAlreadyCompleted() {
@@ -224,31 +303,20 @@ public class MigrationManager {
         return sharedPreferences.getBoolean(MIGRATION_COMPLETED_KEY, false);
     }
 
-    private void saveMigrationCompleted() {
-        // save migration completion status from the persistent state.
-        SharedPreferences sharedPreferences = getSharedPreferences();
-        sharedPreferences.edit().putBoolean(MIGRATION_COMPLETED_KEY, true).apply();
-    }
-
     private SharedPreferences getSharedPreferences() {
         return context.getSharedPreferences(MIGRATION_MODULE_PREFERENCE_FILE_KEY, Context.MODE_PRIVATE);
-    }
-
-    private boolean accountHasMigrated(Response response) {
-        // check if account has been migrated successfully and if yes then complete the process and update the persistent state
-        return false;
     }
 
     private void sendRequest(String url, Callback callback) {
         Request request = new Request.Builder()
                 .url(url)
-                .get()
+                .post(RequestBody.create(null, ""))
                 .build();
         okHttpClient.newCall(request).enqueue(callback);
     }
 
     private void fireOnError(final MigrationManagerListener migrationManagerListener, final Exception e) {
-        // TODO: 25/12/2018 maybe clean some resources here?
+        Log.d(TAG, "fireOnError: ");
         handler.post(new Runnable() {
             @Override
             public void run() {
@@ -261,7 +329,8 @@ public class MigrationManager {
     }
 
     private void fireOnComplete(final MigrationManagerListener migrationManagerListener, final IKinClient kinClient, final boolean needToSave) {
-        // TODO: 25/12/2018 maybe clean some resources here?
+        Log.d(TAG, "fireOnComplete: ");
+        cleanResources();
         handler.post(new Runnable() {
             @Override
             public void run() {
@@ -270,22 +339,33 @@ public class MigrationManager {
                         saveMigrationCompleted();
                     }
                     inMigrationProcess = false;
+                    cleanResources(); // clean resources because of completion. TODO: 30/12/2018 can even add a check for this at the start in case someone tries to start migration again
                     migrationManagerListener.onComplete(kinClient);
                 }
             }
         });
     }
 
+    private void cleanResources() {
+        Log.d(TAG, "cleanResources: ");
+        context = null;
+        migrationNetworkInfo = null;
+        kinVersionProvider = null;
+        whitelistService = null;
+        handler = null;
+        okHttpClient = null;
+    }
+
     private static class RetryInterceptor implements Interceptor {
 
-        private final String TAG = getClass().getSimpleName();
+        private int retryCounter = 1;
 
         @Override
         public Response intercept(@NonNull Chain chain) throws IOException {
+            Log.d(TAG, "intercept: ");
             Request request = chain.request();
             Response response = chain.proceed(request);
-            if (response.code() != 200) { // TODO: 23/12/2018 probably only 500 need a retry
-                Response r = null;
+            if (response.code() >= 500) {
                 return retryRequest(request, chain);
             }
             Log.d(TAG, "INTERCEPTED: " + response.toString());
@@ -294,13 +374,13 @@ public class MigrationManager {
 
         private Response retryRequest(Request req, Chain chain) throws IOException {
             Log.d(TAG, "Retrying new request");
-            // make a new request which is same as the original one.
-            Request newRequest = req.newBuilder() // TODO: 23/12/2018 check if this request still has the same url as before
-                    .build();
+            Request newRequest = req.newBuilder().build();
             Response another = chain.proceed(newRequest);
-            while (another.code() != 200) { // TODO: 23/12/2018 use some retry const in order to retry only X times and do it only for specific errors
-                retryRequest(newRequest, chain);
+            while (retryCounter < MAX_RETRIES && another.code() >= 500) {
+                retryCounter++;
+                retryRequest(newRequest, chain); // recursive call
             }
+            retryCounter = 1;
             return another;
         }
     }
