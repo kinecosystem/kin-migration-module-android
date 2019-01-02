@@ -54,10 +54,16 @@ public class ChooseNetworkActivity extends BaseActivity {
     private void createKinClient(KinClientSampleApplication.NetWorkType netWorkType) {
         KinClientSampleApplication application = (KinClientSampleApplication) getApplication();
         application.createKinClient(netWorkType, "test", new MigrationManagerListener() {
+
             @Override
-            public void onComplete(IKinClient kinClient) {
+            public void onMigrationStart() {
+                // TODO: 02/01/2019 add some progress bar
+            }
+
+            @Override
+            public void onReady(IKinClient kinClient) {
                 if (kinClient.hasAccount()) {
-                    // TODO: 24/12/2018 should implement a way to see if activity was not destroid
+                    // TODO: 24/12/2018 should implement a way to see if activity was not destroyed
                     startActivity(WalletActivity.getIntent(ChooseNetworkActivity.this));
                 } else {
                     startActivity(CreateWalletActivity.getIntent(ChooseNetworkActivity.this));
@@ -66,7 +72,7 @@ public class ChooseNetworkActivity extends BaseActivity {
 
             @Override
             public void onError(Exception e) {
-
+                // TODO: 02/01/2019 add some error dialog
             }
         });
     }

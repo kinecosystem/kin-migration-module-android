@@ -10,6 +10,7 @@ import kin.sdk.migration.exception.MigrationFailedException;
 import kin.sdk.migration.exception.MigrationInProcessException;
 import kin.sdk.migration.interfaces.IKinClient;
 import kin.sdk.migration.MigrationManager;
+import kin.sdk.migration.interfaces.IKinVersionProvider;
 import kin.sdk.migration.interfaces.MigrationManagerListener;
 
 public class KinClientSampleApplication extends Application {
@@ -53,13 +54,19 @@ public class KinClientSampleApplication extends Application {
         }
         whitelistService = new WhitelistService();
         MigrationManager migrationManager = new MigrationManager(this, appId, migrationNetworkInfo,
-                () -> isKinSdkVersion, whitelistService);
+                x -> isKinSdkVersion, whitelistService);
         try {
             migrationManager.startMigration(new MigrationManagerListener() {
+
                 @Override
-                public void onComplete(IKinClient kinClient) {
+                public void onMigrationStart() {
+                    migrationManagerListener.onMigrationStart();
+                }
+
+                @Override
+                public void onReady(IKinClient kinClient) {
                     KinClientSampleApplication.this.kinClient = kinClient;
-                    migrationManagerListener.onComplete(kinClient);
+                    migrationManagerListener.onReady(kinClient);
                 }
 
                 @Override

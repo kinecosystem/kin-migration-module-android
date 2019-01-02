@@ -27,9 +27,14 @@ import kin.utils.Request;
 
 public class KinAccountCoreImpl implements IKinAccount {
 
+    private static String MEMO_APP_ID_VERSION_PREFIX = "1";
+    private static String MEMO_DELIMITER = "-";
+
+    private final String appId;
     private final KinAccount kinAccount;
 
-    KinAccountCoreImpl(KinAccount kinAccount) {
+    KinAccountCoreImpl(String appId, KinAccount kinAccount) {
+        this.appId = appId;
         this.kinAccount = kinAccount;
     }
 
@@ -67,7 +72,7 @@ public class KinAccountCoreImpl implements IKinAccount {
     @Override
     public ITransactionId sendTransactionSync(@NonNull String publicAddress, @NonNull BigDecimal amount, @Nullable String memo) throws OperationFailedException {
         try {
-            TransactionId transactionId = kinAccount.sendTransactionSync(publicAddress, amount, memo);
+            TransactionId transactionId = kinAccount.sendTransactionSync(publicAddress, amount, addAppIdToMemo(memo, appId));
             return new KinCoreTransactionId(transactionId);
         } catch (kin.core.exception.AccountNotFoundException e) {
             throw new AccountNotFoundException(e.getAccountId());
@@ -80,6 +85,19 @@ public class KinAccountCoreImpl implements IKinAccount {
         } catch (kin.core.exception.OperationFailedException e) {
             throw new OperationFailedException(e.getMessage(), e.getCause());
         }
+    }
+
+    private String addAppIdToMemo(@Nullable String memo, @NonNull String appId) {
+        if (memo != null) {
+            StringBuilder sb = new StringBuilder();
+            sb.append(MEMO_APP_ID_VERSION_PREFIX)
+                    .append(MEMO_DELIMITER)
+                    .append(appId)
+                    .append(MEMO_DELIMITER)
+                    .append(memo);
+            memo = sb.toString();
+        }
+        return memo;
     }
 
     @NonNull

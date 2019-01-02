@@ -46,7 +46,7 @@ class KinCoreAccountIntegrationTest {
     @Throws(IOException::class)
     fun setup() {
         val serviceProvider = TestServiceProvider()
-        kinClient = KinClientCoreImpl(InstrumentationRegistry.getTargetContext(), serviceProvider)
+        kinClient = KinClientCoreImpl(InstrumentationRegistry.getTargetContext(), serviceProvider, "test")
         kinClient.clearAllAccounts()
     }
 
