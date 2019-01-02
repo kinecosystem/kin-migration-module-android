@@ -42,7 +42,7 @@ import okhttp3.ResponseBody;
 
 public class MigrationManager {
 
-    private static final String TAG = MigrationManager.class.getSimpleName(); // TODO: 30/12/2018 Add logs
+    private static final String TAG = MigrationManager.class.getSimpleName();
     private final static String MIGRATION_MODULE_PREFERENCE_FILE_KEY = "MIGRATION_MODULE_PREFERENCE_FILE_KEY";
     private final static String MIGRATION_COMPLETED_KEY = "MIGRATION_COMPLETED_KEY";
     private final static int TIMEOUT = 30;
@@ -111,14 +111,14 @@ public class MigrationManager {
     private void startMigrationProcess(final MigrationManagerListener migrationManagerListener) {
         if (isMigrationAlreadyCompleted()) {
             Log.d(TAG, "startMigrationProcess: migration is already completed in the past");
-            // TODO: 24/12/2018 it really didn't complete because actually it was already completed in the past so need to pass this info to developer or change method name
-            fireOnComplete(migrationManagerListener, initNewKin(), false);
+            fireOnReady(migrationManagerListener, initNewKin(), false);
         } else {
             try {
-                if (kinVersionProvider.isKinSdkVersion()) {
+                if (kinVersionProvider.isNewKinSdkVersion(appId)) {
                     Log.d(TAG, "startMigrationProcess: new sdk.");
                     KinClientCoreImpl kinClientCore = initKinCore();
                     if (kinClientCore.hasAccount()) {
+                        migrationManagerListener.onMigrationStart();
                         KinAccountCoreImpl account = (KinAccountCoreImpl) kinClientCore.getAccount(kinClientCore.getAccountCount() - 1);
                         String publicAddress = account.getPublicAddress();
                         Log.d(TAG, "startMigrationProcess: retrieve this account: " + publicAddress);
@@ -128,12 +128,10 @@ public class MigrationManager {
                             fireOnError(migrationManagerListener, new MigrationFailedException("Account could not be burn because of some unexpected exception"));
                         }
                     } else {
-                        // TODO: 24/12/2018 and maybe make sure that he has an account or create it (check it because we are creating all the account manually in server)
-                        fireOnComplete(migrationManagerListener, initNewKin(), true);
+                        fireOnReady(migrationManagerListener, initNewKin(), true);
                     }
                 } else {
-                    // TODO: 24/12/2018 it really didn't complete because actually there was no migration yet so need to pass this info to developer
-                    fireOnComplete(migrationManagerListener, initKinCore(), false);
+                    fireOnReady(migrationManagerListener, initKinCore(), false);
                 }
             } catch (FailedToResolveSdkVersionException e) {
                 fireOnError(migrationManagerListener, e);
@@ -227,7 +225,7 @@ public class MigrationManager {
                 // TODO: 23/12/2018 if this is running on the ui thread then do the work a background thread
                 // TODO: 23/12/2018 check if response is ok and that indeed the account has been burned
                 if (response.isSuccessful()) {
-                    fireOnComplete(migrationManagerListener, initNewKin(), true);
+                    fireOnReady(migrationManagerListener, initNewKin(), true);
                 } else {
                     fireOnError(migrationManagerListener, generateMigrationException(response.body()));
                 }
@@ -328,9 +326,8 @@ public class MigrationManager {
         });
     }
 
-    private void fireOnComplete(final MigrationManagerListener migrationManagerListener, final IKinClient kinClient, final boolean needToSave) {
-        Log.d(TAG, "fireOnComplete: ");
-        cleanResources();
+    private void fireOnReady(final MigrationManagerListener migrationManagerListener, final IKinClient kinClient, final boolean needToSave) {
+        Log.d(TAG, "fireOnReady: ");
         handler.post(new Runnable() {
             @Override
             public void run() {
@@ -340,7 +337,7 @@ public class MigrationManager {
                     }
                     inMigrationProcess = false;
                     cleanResources(); // clean resources because of completion. TODO: 30/12/2018 can even add a check for this at the start in case someone tries to start migration again
-                    migrationManagerListener.onComplete(kinClient);
+                    migrationManagerListener.onReady(kinClient);
                 }
             }
         });
