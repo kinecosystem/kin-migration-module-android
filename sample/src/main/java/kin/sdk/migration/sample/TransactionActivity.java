@@ -33,12 +33,14 @@ public class TransactionActivity extends BaseActivity {
 
     private EditText toAddressInput, amountInput, memoInput;
     private Request<ITransactionId> sendTransactionRequest;
+    private WhitelistService whitelistService;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.transaction_activity);
         initWidgets();
+        whitelistService = new WhitelistService(new WhitelistServiceListenerImpl());
     }
 
     @Override
@@ -162,11 +164,10 @@ public class TransactionActivity extends BaseActivity {
     }
 
     private void sendTransaction(String toAddress, BigDecimal amount, String memo, IKinAccount account) {
-        ((KinClientSampleApplication) getApplication()).setWhitelistServiceListener(new WhitelistServiceListenerImpl());
         if (memo == null) {
-            sendTransactionRequest = account.sendTransaction(toAddress, amount);
+            sendTransactionRequest = account.sendTransaction(toAddress, amount, whitelistService);
         } else {
-            sendTransactionRequest = account.sendTransaction(toAddress, amount, memo);
+            sendTransactionRequest = account.sendTransaction(toAddress, amount, whitelistService, memo);
         }
         sendTransactionRequest.run(new SendTransactionCallback());
     }

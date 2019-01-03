@@ -53,24 +53,22 @@ public class MigrationManager {
     private final String appId;
     private MigrationNetworkInfo migrationNetworkInfo;
     private IKinVersionProvider kinVersionProvider;
-    private IWhitelistService whitelistService;
     private String storeKey;
     private Handler handler;
     private OkHttpClient okHttpClient;
     private boolean inMigrationProcess; // defence against multiple calls
 
     public MigrationManager(@NonNull Context context, @NonNull String appId, @NonNull MigrationNetworkInfo migrationNetworkInfo,
-                            @NonNull IKinVersionProvider kinVersionProvider, @NonNull IWhitelistService whitelistService) { // TODO: 06/12/2018 we should probably also add the eventLogger
-        this(context, appId, migrationNetworkInfo, kinVersionProvider, whitelistService, "");
+                            @NonNull IKinVersionProvider kinVersionProvider) { // TODO: 06/12/2018 we should probably also add the eventLogger
+        this(context, appId, migrationNetworkInfo, kinVersionProvider, "");
     }
 
     public MigrationManager(@NonNull Context context, @NonNull String appId, @NonNull MigrationNetworkInfo migrationNetworkInfo,
-                            @NonNull IKinVersionProvider kinVersionProvider, @NonNull IWhitelistService whitelistService, @NonNull String storeKey) {
+                            @NonNull IKinVersionProvider kinVersionProvider, @NonNull String storeKey) {
         this.context = context;
         this.appId = appId;
         this.migrationNetworkInfo = migrationNetworkInfo;
         this.kinVersionProvider = kinVersionProvider;
-        this.whitelistService = whitelistService;
         this.storeKey = storeKey;
     }
 
@@ -285,7 +283,7 @@ public class MigrationManager {
     private IKinClient initNewKin() {
         IKinClient kinClient;
         Environment environment = new Environment(migrationNetworkInfo.getSdkNetworkUrl(), migrationNetworkInfo.getSdkNetworkId());
-        kinClient = new KinClientSdkImpl(context, environment, appId, whitelistService, storeKey);
+        kinClient = new KinClientSdkImpl(context, environment, appId, storeKey);
         return kinClient;
     }
 
@@ -348,7 +346,6 @@ public class MigrationManager {
         context = null;
         migrationNetworkInfo = null;
         kinVersionProvider = null;
-        whitelistService = null;
         handler = null;
         okHttpClient = null;
     }

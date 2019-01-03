@@ -22,7 +22,6 @@ public class KinClientSampleApplication extends Application {
     private static final String CORE_ISSUER = "GBC3SG6NGTSZ2OMH3FFGB7UVRQWILW367U4GSOOF4TFSZONV42UJXUH7";
 
     private IKinClient kinClient;
-    private WhitelistService whitelistService;
     private boolean isKinSdkVersion;
 
     public enum NetWorkType {
@@ -52,9 +51,8 @@ public class KinClientSampleApplication extends Application {
         } else {
              // TODO: 24/12/2018 handle it after we have production urls
         }
-        whitelistService = new WhitelistService();
         MigrationManager migrationManager = new MigrationManager(this, appId, migrationNetworkInfo,
-                x -> isKinSdkVersion, whitelistService);
+                x -> isKinSdkVersion);
         try {
             migrationManager.startMigration(new MigrationManagerListener() {
 
@@ -81,10 +79,6 @@ public class KinClientSampleApplication extends Application {
 
     public IKinClient getKinClient() {
         return kinClient;
-    }
-
-    public void setWhitelistServiceListener(WhitelistServiceListener whitelistServiceListener) {
-        whitelistService.setWhitelistServiceListener(whitelistServiceListener);
     }
 
     public boolean isKinSdkVersion() {

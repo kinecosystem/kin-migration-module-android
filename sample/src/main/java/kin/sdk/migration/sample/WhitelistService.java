@@ -31,7 +31,8 @@ class WhitelistService implements IWhitelistService {
     private final Handler handler;
     private WhitelistServiceListener whitelistServiceListener;
 
-    WhitelistService() {
+    WhitelistService(WhitelistServiceListener whitelistServiceListener) {
+        this.whitelistServiceListener = whitelistServiceListener;
         handler = new Handler(Looper.getMainLooper());
         okHttpClient = new OkHttpClient.Builder()
                 .connectTimeout(20, TimeUnit.SECONDS)
@@ -66,10 +67,6 @@ class WhitelistService implements IWhitelistService {
         }
 
         return new WhitelistResult(whitelistTransaction, true);
-    }
-
-    public void setWhitelistServiceListener(WhitelistServiceListener whitelistServiceListener) {
-        this.whitelistServiceListener = whitelistServiceListener;
     }
 
     private void handleResponse(@NonNull Response response, IWhitelistServiceCallbacks callbacks) throws IOException {

@@ -26,10 +26,11 @@ public interface IKinAccount {
      *
      * @param publicAddress the account address to send the specified kin amount
      * @param amount the amount of kin to transfer
+     * @param whitelistService is a service which can be used in order to whitelist the transaction before sending it.
      * @return {@code Request<TransactionId>}, TransactionId - the transaction identifier
      */
     @NonNull
-    Request<ITransactionId> sendTransaction(@NonNull String publicAddress, @NonNull BigDecimal amount);
+    Request<ITransactionId> sendTransaction(@NonNull String publicAddress, @NonNull BigDecimal amount, IWhitelistService whitelistService);
 
     /**
      * Create Request for signing and sending a transaction of the given amount in kin, to the specified public
@@ -38,12 +39,13 @@ public interface IKinAccount {
      *
      * @param publicAddress the account address to send the specified kin amount
      * @param amount the amount of kin to transfer
+     * @param whitelistService is a service which can be used in order to whitelist the transaction before sending it.
      * @param memo An optional string, can contain a utf-8 string up to 28 bytes in length, included on the transaction
      * record.
      * @return {@code Request<TransactionId>}, TransactionId - the transaction identifier
      */
     @NonNull
-    Request<ITransactionId> sendTransaction(@NonNull String publicAddress, @NonNull BigDecimal amount, @Nullable String memo);
+    Request<ITransactionId> sendTransaction(@NonNull String publicAddress, @NonNull BigDecimal amount, IWhitelistService whitelistService, @Nullable String memo);
 
     /**
      * Create, sign and send a transaction of the given amount in kin to the specified public address
@@ -51,6 +53,7 @@ public interface IKinAccount {
      *
      * @param publicAddress the account address to send the specified kin amount
      * @param amount the amount of kin to transfer
+     * @param whitelistService is a service which can be used in order to whitelist the transaction before sending it.
      * @return TransactionId the transaction identifier
      * @throws AccountNotFoundException if the sender or destination account was not created
      * @throws AccountNotActivatedException if the sender or destination account is not activated
@@ -59,7 +62,7 @@ public interface IKinAccount {
      * @throws OperationFailedException other error occurred
      */
     @NonNull
-    ITransactionId sendTransactionSync(@NonNull String publicAddress, @NonNull BigDecimal amount)
+    ITransactionId sendTransactionSync(@NonNull String publicAddress, @NonNull BigDecimal amount, IWhitelistService whitelistService)
             throws OperationFailedException;
 
     /**
@@ -68,6 +71,7 @@ public interface IKinAccount {
      *
      * @param publicAddress the account address to send the specified kin amount
      * @param amount the amount of kin to transfer
+     * @param whitelistService is a service which can be used in order to whitelist the transaction before sending it.
      * @param memo An optional string, can contain a utf-8 string up to 28 bytes in length, included on the transaction
      * record.
      * @return TransactionId the transaction identifier
@@ -78,7 +82,7 @@ public interface IKinAccount {
      * @throws OperationFailedException other error occurred
      */
     @NonNull
-    ITransactionId sendTransactionSync(@NonNull String publicAddress, @NonNull BigDecimal amount, @Nullable String memo)
+    ITransactionId sendTransactionSync(@NonNull String publicAddress, @NonNull BigDecimal amount, IWhitelistService whitelistService, @Nullable String memo)
             throws OperationFailedException;
 
 

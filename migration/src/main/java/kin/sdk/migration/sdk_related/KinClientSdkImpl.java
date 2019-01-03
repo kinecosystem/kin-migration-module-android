@@ -16,16 +16,14 @@ import kin.sdk.migration.exception.DeleteAccountException;
 
 public class KinClientSdkImpl implements IKinClient {
 
-    private final IWhitelistService whitelistService;
     private final KinSdkEnvironment kinSdkEnvironment;
     private KinClient kinClient;
 
-    public KinClientSdkImpl(Context context, Environment env, String appId, IWhitelistService whitelistService) {
-        this(context, env, appId, whitelistService, "");
+    public KinClientSdkImpl(Context context, Environment env, String appId) {
+        this(context, env, appId, "");
     }
 
-    public KinClientSdkImpl(Context context, Environment env, String appId, IWhitelistService whitelistService, String storeKey) {
-        this.whitelistService = whitelistService;
+    public KinClientSdkImpl(Context context, Environment env, String appId, String storeKey) {
         kinSdkEnvironment = new KinSdkEnvironment(env);
         kinClient = new KinClient(context, env, appId, storeKey);
     }
@@ -39,7 +37,7 @@ public class KinClientSdkImpl implements IKinClient {
     @Override
     public IKinAccount addAccount() throws CreateAccountException {
         try {
-            return new KinAccountSdkImpl(kinClient.addAccount(), whitelistService);
+            return new KinAccountSdkImpl(kinClient.addAccount());
         } catch (kin.sdk.exception.CreateAccountException e) {
             throw new CreateAccountException(e.getCause());
         }
@@ -48,7 +46,7 @@ public class KinClientSdkImpl implements IKinClient {
     @Override
     public IKinAccount getAccount(int index) {
         KinAccount kinAccount = kinClient.getAccount(index);
-        return new KinAccountSdkImpl(kinAccount, whitelistService);
+        return new KinAccountSdkImpl(kinAccount);
     }
 
     @Override
@@ -81,7 +79,7 @@ public class KinClientSdkImpl implements IKinClient {
             throws CryptoException, CreateAccountException, CorruptedDataException {
         try {
             KinAccount kinAccount = kinClient.importAccount(exportedJson, passphrase);
-            return new KinAccountSdkImpl(kinAccount, whitelistService);
+            return new KinAccountSdkImpl(kinAccount);
         } catch (kin.sdk.exception.CryptoException e) {
             throw new CryptoException(e.getMessage(), e.getCause());
         } catch (kin.sdk.exception.CreateAccountException e) {

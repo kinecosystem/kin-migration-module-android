@@ -23,6 +23,7 @@ import kin.sdk.migration.exception.CryptoException;
 import kin.sdk.migration.exception.InsufficientKinException;
 import kin.sdk.migration.exception.OperationFailedException;
 import kin.sdk.migration.exception.TransactionFailedException;
+import kin.sdk.migration.interfaces.IWhitelistService;
 import kin.utils.Request;
 
 public class KinAccountCoreImpl implements IKinAccount {
@@ -47,30 +48,32 @@ public class KinAccountCoreImpl implements IKinAccount {
 
     @NonNull
     @Override
-    public Request<ITransactionId> sendTransaction(@NonNull String publicAddress, @NonNull BigDecimal amount) {
-        return sendTransaction(publicAddress, amount, null);
+    public Request<ITransactionId> sendTransaction(@NonNull String publicAddress, @NonNull BigDecimal amount, IWhitelistService whitelistService) {
+        return sendTransaction(publicAddress, amount, whitelistService, null);
     }
 
     @NonNull
     @Override
-    public Request<ITransactionId> sendTransaction(final @NonNull String publicAddress, final @NonNull BigDecimal amount, final @Nullable String memo) {
+    public Request<ITransactionId> sendTransaction(final @NonNull String publicAddress, final @NonNull BigDecimal amount,
+                                                   final IWhitelistService whitelistService, final @Nullable String memo) {
         return new Request<>(new Callable<ITransactionId>() {
             @Override
             public ITransactionId call() throws Exception {
-                return sendTransactionSync(publicAddress, amount, memo);
+                return sendTransactionSync(publicAddress, amount, whitelistService, memo);
             }
         });
     }
 
     @NonNull
     @Override
-    public ITransactionId sendTransactionSync(@NonNull String publicAddress, @NonNull BigDecimal amount) throws OperationFailedException {
-        return sendTransactionSync(publicAddress, amount, null);
+    public ITransactionId sendTransactionSync(@NonNull String publicAddress, @NonNull BigDecimal amount, IWhitelistService whitelistService) throws OperationFailedException {
+        return sendTransactionSync(publicAddress, amount, whitelistService, null);
     }
 
     @NonNull
     @Override
-    public ITransactionId sendTransactionSync(@NonNull String publicAddress, @NonNull BigDecimal amount, @Nullable String memo) throws OperationFailedException {
+    public ITransactionId sendTransactionSync(@NonNull String publicAddress, @NonNull BigDecimal amount,
+                                              IWhitelistService whitelistService, @Nullable String memo) throws OperationFailedException {
         try {
             TransactionId transactionId = kinAccount.sendTransactionSync(publicAddress, amount, addAppIdToMemo(memo, appId));
             return new KinCoreTransactionId(transactionId);
