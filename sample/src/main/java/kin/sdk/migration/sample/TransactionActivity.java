@@ -192,7 +192,7 @@ public class TransactionActivity extends BaseActivity {
 
         @Override
         public void onFailure(Exception e) {
-            Utils.logError(e, "whitelistTransaction");
+            Utils.logError(e, "onWhitelistableTransactionReady");
             KinAlertDialog.createErrorDialog(TransactionActivity.this, e.getMessage()).show();
         }
     }

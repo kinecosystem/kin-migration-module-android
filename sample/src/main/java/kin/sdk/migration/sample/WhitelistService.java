@@ -14,8 +14,7 @@ import kin.sdk.migration.exception.WhitelistTransactionFailedException;
 import kin.sdk.migration.interfaces.IWhitelistableTransaction;
 import kin.sdk.migration.interfaces.IWhitelistService;
 import kin.sdk.migration.interfaces.IWhitelistServiceCallbacks;
-import okhttp3.Call;
-import okhttp3.Callback;
+import kin.sdk.migration.sdk_related.WhitelistResult;
 import okhttp3.MediaType;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
@@ -41,7 +40,7 @@ class WhitelistService implements IWhitelistService {
     }
 
     @Override
-    public String whitelistTransaction(IWhitelistableTransaction whitelistableTransaction) throws WhitelistTransactionFailedException {
+    public WhitelistResult onWhitelistableTransactionReady(IWhitelistableTransaction whitelistableTransaction) throws WhitelistTransactionFailedException {
         String whitelistTransaction = null;
         RequestBody requestBody;
         try {
@@ -65,7 +64,8 @@ class WhitelistService implements IWhitelistService {
         } catch (IOException e) {
             throw new WhitelistTransactionFailedException(e);
         }
-        return whitelistTransaction;
+
+        return new WhitelistResult(whitelistTransaction, true);
     }
 
     public void setWhitelistServiceListener(WhitelistServiceListener whitelistServiceListener) {

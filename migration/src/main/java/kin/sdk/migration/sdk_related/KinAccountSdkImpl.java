@@ -72,8 +72,11 @@ public class KinAccountSdkImpl implements IKinAccount {
         try {
             Transaction transaction = kinAccount.buildTransactionSync(publicAddress, amount, 0, memo);
             if (whitelistService != null) {
-                String whitelistTransaction = whitelistService.whitelistTransaction(new KinSdkTransaction(transaction).getWhitelistableTransaction());
-                TransactionId transactionId = kinAccount.sendWhitelistTransactionSync(whitelistTransaction);
+                TransactionId transactionId = null;
+                WhitelistResult whitelistTransactionResult = whitelistService.onWhitelistableTransactionReady(new KinSdkTransaction(transaction).getWhitelistableTransaction());
+                if (whitelistTransactionResult.shouldSendTransaction()) {
+                    transactionId = kinAccount.sendWhitelistTransactionSync(whitelistTransactionResult.getWhitelistedTransaction());
+                }
                 return new KinSdkTransactionId(transactionId);
             } else {
                 throw new IllegalArgumentException("whitelist service listener is null");
