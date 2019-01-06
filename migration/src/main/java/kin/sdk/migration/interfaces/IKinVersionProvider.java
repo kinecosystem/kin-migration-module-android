@@ -26,8 +26,8 @@ public interface IKinVersionProvider {
         }
 
         // This method can be used for reverse lookup purpose
-        public static SdkVersion get(String url) {
-            return lookup.get(url);
+        public static SdkVersion get(String version) {
+            return lookup.get(version);
         }
 
         SdkVersion(String version) {
