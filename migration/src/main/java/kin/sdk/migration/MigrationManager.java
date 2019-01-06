@@ -28,7 +28,6 @@ import kin.sdk.migration.exception.OperationFailedException;
 import kin.sdk.migration.interfaces.IKinClient;
 import kin.sdk.migration.interfaces.IKinVersionProvider;
 import kin.sdk.migration.interfaces.ITransactionId;
-import kin.sdk.migration.interfaces.IWhitelistService;
 import kin.sdk.migration.interfaces.MigrationManagerListener;
 import kin.sdk.migration.sdk_related.KinClientSdkImpl;
 import okhttp3.Call;
@@ -112,7 +111,7 @@ public class MigrationManager {
             fireOnReady(migrationManagerListener, initNewKin(), false);
         } else {
             try {
-                if (kinVersionProvider.isNewKinSdkVersion(appId)) {
+                if (kinVersionProvider.getKinSdkVersion(appId) == IKinVersionProvider.SdkVersion.NEW_KIN_SDK) {
                     Log.d(TAG, "startMigrationProcess: new sdk.");
                     KinClientCoreImpl kinClientCore = initKinCore();
                     if (kinClientCore.hasAccount()) {
@@ -242,7 +241,7 @@ public class MigrationManager {
                 Map<String, String> error = new Gson().fromJson(body.string(), type);
                 final String code = error.get("code");
                 String message = error.get("message");
-                switch (code) { // TODO: 30/12/2018 maybe do something specif with each error
+                switch (code) { // TODO: 30/12/2018 when starting the tasks from Yohay meeting then also implement gere
 //                    case "4001":
 //
 //                        break;

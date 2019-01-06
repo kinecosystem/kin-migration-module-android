@@ -22,7 +22,7 @@ public class KinClientSampleApplication extends Application {
     private static final String CORE_ISSUER = "GBC3SG6NGTSZ2OMH3FFGB7UVRQWILW367U4GSOOF4TFSZONV42UJXUH7";
 
     private IKinClient kinClient;
-    private boolean isKinSdkVersion;
+    private IKinVersionProvider.SdkVersion sdkVersion;
 
     public enum NetWorkType {
         CORE_MAIN,
@@ -45,14 +45,14 @@ public class KinClientSampleApplication extends Application {
         MigrationNetworkInfo migrationNetworkInfo = new MigrationNetworkInfo(CORE_TEST_NETWORK_URL, CORE_TEST_NETWORK_ID,
                                                         SDK_TEST_NETWORK_URL, SDK_TEST_NETWORK_ID, CORE_ISSUER);
         if (type == NetWorkType.SDK_TEST) {
-            isKinSdkVersion = true;
+            sdkVersion = IKinVersionProvider.SdkVersion.NEW_KIN_SDK;
         } else if (type == NetWorkType.CORE_TEST) {
-            isKinSdkVersion = false;
+            sdkVersion = IKinVersionProvider.SdkVersion.OLD_KIN_SDK;
         } else {
              // TODO: 24/12/2018 handle it after we have production urls
         }
         MigrationManager migrationManager = new MigrationManager(this, appId, migrationNetworkInfo,
-                x -> isKinSdkVersion);
+                x -> sdkVersion);
         try {
             migrationManager.startMigration(new MigrationManagerListener() {
 
@@ -81,8 +81,8 @@ public class KinClientSampleApplication extends Application {
         return kinClient;
     }
 
-    public boolean isKinSdkVersion() {
-        return isKinSdkVersion;
+    public IKinVersionProvider.SdkVersion isKinSdkVersion() {
+        return sdkVersion;
     }
 
 }
