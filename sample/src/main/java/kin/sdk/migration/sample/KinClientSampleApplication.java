@@ -5,8 +5,6 @@ import android.os.StrictMode;
 import android.os.StrictMode.VmPolicy;
 
 import kin.sdk.migration.MigrationNetworkInfo;
-import kin.sdk.migration.exception.FailedToResolveSdkVersionException;
-import kin.sdk.migration.exception.MigrationFailedException;
 import kin.sdk.migration.exception.MigrationInProcessException;
 import kin.sdk.migration.interfaces.IKinClient;
 import kin.sdk.migration.MigrationManager;
@@ -54,7 +52,7 @@ public class KinClientSampleApplication extends Application {
         MigrationManager migrationManager = new MigrationManager(this, appId, migrationNetworkInfo,
                 x -> sdkVersion);
         try {
-            migrationManager.startMigration(new MigrationManagerListener() {
+            migrationManager.start(new MigrationManagerListener() {
 
                 @Override
                 public void onMigrationStart() {

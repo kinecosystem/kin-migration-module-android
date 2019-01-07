@@ -21,6 +21,7 @@ import kin.core.ServiceProvider;
 import kin.sdk.Environment;
 import kin.sdk.migration.core_related.KinAccountCoreImpl;
 import kin.sdk.migration.core_related.KinClientCoreImpl;
+import kin.sdk.migration.exception.AccountNotFoundException;
 import kin.sdk.migration.exception.FailedToResolveSdkVersionException;
 import kin.sdk.migration.exception.MigrationFailedException;
 import kin.sdk.migration.exception.MigrationInProcessException;
@@ -78,7 +79,7 @@ public class MigrationManager {
      * @param migrationManagerListener is a listener so the caller can get a callback for completion or error(on the UI thread).
      * @throws MigrationInProcessException is thrown in case this method is called while it is not finished.
      */
-    public void startMigration(final MigrationManagerListener migrationManagerListener) throws MigrationInProcessException {
+    public void start(final MigrationManagerListener migrationManagerListener) throws MigrationInProcessException {
         // TODO: 12/12/2018 this is an api call so we need to make sure the one who implement it knows that
         // TODO: 12/12/2018 Maybe we should use actual boolean in the constructor or in the init method instead of using it as an interface?
         if (!inMigrationProcess) {
@@ -113,20 +114,7 @@ public class MigrationManager {
             try {
                 if (kinVersionProvider.getKinSdkVersion(appId) == IKinVersionProvider.SdkVersion.NEW_KIN_SDK) {
                     Log.d(TAG, "startMigrationProcess: new sdk.");
-                    KinClientCoreImpl kinClientCore = initKinCore();
-                    if (kinClientCore.hasAccount()) {
-                        migrationManagerListener.onMigrationStart();
-                        KinAccountCoreImpl account = (KinAccountCoreImpl) kinClientCore.getAccount(kinClientCore.getAccountCount() - 1);
-                        String publicAddress = account.getPublicAddress();
-                        Log.d(TAG, "startMigrationProcess: retrieve this account: " + publicAddress);
-                        if (startBurnAccountProcess(publicAddress, account)) {
-                            migrateToNewKin(publicAddress, migrationManagerListener);
-                        } else {
-                            fireOnError(migrationManagerListener, new MigrationFailedException("Account could not be burn because of some unexpected exception"));
-                        }
-                    } else {
-                        fireOnReady(migrationManagerListener, initNewKin(), true);
-                    }
+                    burnAndMigrateAccount(migrationManagerListener);
                 } else {
                     fireOnReady(migrationManagerListener, initKinCore(), false);
                 }
@@ -137,6 +125,29 @@ public class MigrationManager {
             } catch (OperationFailedException e) {
                 fireOnError(migrationManagerListener, new MigrationFailedException(e));
             }
+        }
+    }
+
+    private void burnAndMigrateAccount(MigrationManagerListener migrationManagerListener) throws OperationFailedException {
+        KinClientCoreImpl kinClientCore = initKinCore();
+        if (kinClientCore.hasAccount()) {
+            migrationManagerListener.onMigrationStart();
+            KinAccountCoreImpl account = (KinAccountCoreImpl) kinClientCore.getAccount(kinClientCore.getAccountCount() - 1);
+            String publicAddress = account.getPublicAddress();
+            Log.d(TAG, "startMigrationProcess: retrieve this account: " + publicAddress);
+            try {
+                boolean burnProcessSucceeded = startBurnAccountProcess(publicAddress, account);
+                if (burnProcessSucceeded) {
+                    migrateToNewKin(publicAddress, migrationManagerListener);
+                } else {
+                    fireOnError(migrationManagerListener, new MigrationFailedException("Account could not be burn because of some unexpected exception"));
+                }
+            } catch (AccountNotFoundException e) {
+                // If no account has been found then we just return a new kin client that runs on the new blockchain
+                fireOnReady(migrationManagerListener, initNewKin(), true);
+            }
+        } else {
+            fireOnReady(migrationManagerListener, initNewKin(), true);
         }
     }
 
@@ -178,7 +189,7 @@ public class MigrationManager {
                             continue;
                         }
                     }
-                    throw new MigrationFailedException(e.getMessage(), e.getCause());
+                    throw e;
                 }
             }
         } else {
@@ -275,7 +286,7 @@ public class MigrationManager {
                 return migrationNetworkInfo.getIssuer();
             }
         };
-        return new KinClientCoreImpl(context, environment, storeKey);
+        return new KinClientCoreImpl(context, environment, appId, storeKey);
     }
 
     @NonNull

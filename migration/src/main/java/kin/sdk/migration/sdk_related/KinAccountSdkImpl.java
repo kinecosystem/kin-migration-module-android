@@ -191,4 +191,9 @@ public class KinAccountSdkImpl implements IKinAccount {
         return new KinSdkListenerRegistration(listenerRegistration);
     }
 
+    @Override
+    public boolean isNewKinSdk() {
+        return true;
+    }
+
 }

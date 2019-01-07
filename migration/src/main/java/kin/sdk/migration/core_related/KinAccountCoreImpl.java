@@ -242,4 +242,9 @@ public class KinAccountCoreImpl implements IKinAccount {
         return new KinCoreListenerRegistration(listenerRegistration);
     }
 
+    @Override
+    public boolean isNewKinSdk() {
+        return false;
+    }
+
 }

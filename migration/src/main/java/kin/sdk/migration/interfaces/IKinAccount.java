@@ -174,4 +174,9 @@ public interface IKinAccount {
      */
     IListenerRegistration addAccountCreationListener(final IEventListener<Void> listener);
 
+    /**
+     * @return true if current account is in the new kin blockchain.,
+     */
+    boolean isNewKinSdk();
+
 }
