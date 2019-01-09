@@ -19,6 +19,7 @@ import java.util.concurrent.TimeUnit;
 
 import kin.core.ServiceProvider;
 import kin.sdk.Environment;
+import kin.sdk.migration.bi.IMigrationEventsListener;
 import kin.sdk.migration.core_related.KinAccountCoreImpl;
 import kin.sdk.migration.core_related.KinClientCoreImpl;
 import kin.sdk.migration.exception.AccountNotFoundException;
@@ -57,19 +58,21 @@ public class MigrationManager {
     private Handler handler;
     private OkHttpClient okHttpClient;
     private boolean inMigrationProcess; // defence against multiple calls
+    private IMigrationEventsListener migrationEventsListener;
 
     public MigrationManager(@NonNull Context context, @NonNull String appId, @NonNull MigrationNetworkInfo migrationNetworkInfo,
-                            @NonNull IKinVersionProvider kinVersionProvider) { // TODO: 06/12/2018 we should probably also add the eventLogger
-        this(context, appId, migrationNetworkInfo, kinVersionProvider, "");
+                            @NonNull IKinVersionProvider kinVersionProvider, @NonNull IMigrationEventsListener migrationEventsListener) { // TODO: 06/12/2018 we should probably also add the eventLogger
+        this(context, appId, migrationNetworkInfo, kinVersionProvider, "", migrationEventsListener);
     }
 
     public MigrationManager(@NonNull Context context, @NonNull String appId, @NonNull MigrationNetworkInfo migrationNetworkInfo,
-                            @NonNull IKinVersionProvider kinVersionProvider, @NonNull String storeKey) {
+                            @NonNull IKinVersionProvider kinVersionProvider, @NonNull String storeKey, @NonNull IMigrationEventsListener migrationEventsListener) {
         this.context = context;
         this.appId = appId;
         this.migrationNetworkInfo = migrationNetworkInfo;
         this.kinVersionProvider = kinVersionProvider;
         this.storeKey = storeKey;
+        this.migrationEventsListener = migrationEventsListener;
     }
 
     /**
@@ -358,6 +361,10 @@ public class MigrationManager {
         kinVersionProvider = null;
         handler = null;
         okHttpClient = null;
+    }
+
+    public IMigrationEventsListener getMigrationEventsListener() {
+        return migrationEventsListener;
     }
 
     private static class RetryInterceptor implements Interceptor {
