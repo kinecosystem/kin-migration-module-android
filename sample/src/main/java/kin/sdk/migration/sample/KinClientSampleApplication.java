@@ -50,7 +50,7 @@ public class KinClientSampleApplication extends Application {
              // TODO: 24/12/2018 handle it after we have production urls
         }
         MigrationManager migrationManager = new MigrationManager(this, appId, migrationNetworkInfo,
-                x -> sdkVersion);
+                x -> sdkVersion, new SampleMigrationEventsListener());
         try {
             migrationManager.start(new MigrationManagerListener() {
 

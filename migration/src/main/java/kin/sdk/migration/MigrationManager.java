@@ -10,6 +10,7 @@ import android.util.Log;
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 
+import org.json.JSONObject;
 import org.stellar.sdk.responses.HttpResponseException;
 
 import java.io.IOException;
@@ -256,7 +257,18 @@ public class MigrationManager {
             @Override
             public void onResponse(@NonNull Call call, @NonNull Response response) {
                 if (response.isSuccessful()) {
-                    eventsListener.onMigrationSuccess(null);
+
+
+                    try {
+                        JSONObject responseJson = new JSONObject(response.body().string());
+
+                        Log.d("MigrationManager", "responseJson: " + responseJson);
+
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
+
+                    eventsListener.onMigrationSuccess(new BigDecimal(-1));
                     fireOnReady(migrationManagerListener, initNewKin(), true);
                 } else {
                     // TODO: 08/01/2019 we should check if account is already migrated and if yes then return a new kin client or throw exception or something                    
