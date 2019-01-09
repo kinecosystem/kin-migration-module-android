@@ -14,9 +14,11 @@ import org.stellar.sdk.responses.HttpResponseException;
 
 import java.io.IOException;
 import java.lang.reflect.Type;
+import java.math.BigDecimal;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
+import kin.core.Balance;
 import kin.core.ServiceProvider;
 import kin.sdk.Environment;
 import kin.sdk.migration.bi.IMigrationEventsListener;
@@ -48,7 +50,7 @@ public class MigrationManager {
     private final static String MIGRATION_COMPLETED_KEY = "MIGRATION_COMPLETED_KEY";
     private final static int TIMEOUT = 30;
     private final static int MAX_RETRIES = 3;
-    private static final String URL_MIGRATE_ACCOUNT_SERVICE = "http://10.4.59.1:8000/migrate?address=";
+    private static final String URL_MIGRATE_ACCOUNT_SERVICE = "https://migration-devplatform-playground.developers.kinecosystem.com/migrate?address=";
 
     private Context context;
     private final String appId;
@@ -58,7 +60,7 @@ public class MigrationManager {
     private Handler handler;
     private OkHttpClient okHttpClient;
     private boolean inMigrationProcess; // defence against multiple calls
-    private IMigrationEventsListener migrationEventsListener;
+    private IMigrationEventsListener eventsListener;
 
     public MigrationManager(@NonNull Context context, @NonNull String appId, @NonNull MigrationNetworkInfo migrationNetworkInfo,
                             @NonNull IKinVersionProvider kinVersionProvider, @NonNull IMigrationEventsListener migrationEventsListener) { // TODO: 06/12/2018 we should probably also add the eventLogger
@@ -72,7 +74,7 @@ public class MigrationManager {
         this.migrationNetworkInfo = migrationNetworkInfo;
         this.kinVersionProvider = kinVersionProvider;
         this.storeKey = storeKey;
-        this.migrationEventsListener = migrationEventsListener;
+        this.eventsListener = migrationEventsListener;
     }
 
     /**
@@ -122,10 +124,13 @@ public class MigrationManager {
                     fireOnReady(migrationManagerListener, initKinCore(), false);
                 }
             } catch (FailedToResolveSdkVersionException e) {
+                eventsListener.onMigrationFailed(e);
                 fireOnError(migrationManagerListener, e);
             } catch (MigrationFailedException e) {
+                eventsListener.onMigrationFailed(e);
                 fireOnError(migrationManagerListener, e);
             } catch (OperationFailedException e) {
+                eventsListener.onMigrationFailed(e);
                 fireOnError(migrationManagerListener, new MigrationFailedException(e));
             }
         }
@@ -137,16 +142,22 @@ public class MigrationManager {
             migrationManagerListener.onMigrationStart();
             KinAccountCoreImpl account = (KinAccountCoreImpl) kinClientCore.getAccount(kinClientCore.getAccountCount() - 1);
             String publicAddress = account.getPublicAddress();
+            BigDecimal balance = account.getBalanceSync().value();
             Log.d(TAG, "startMigrationProcess: retrieve this account: " + publicAddress);
             try {
+                eventsListener.onAccountBurnStart();
                 boolean burnProcessSucceeded = startBurnAccountProcess(publicAddress, account);
                 if (burnProcessSucceeded) {
+                    eventsListener.onAccountBurnSuccess();
                     migrateToNewKin(publicAddress, migrationManagerListener);
                 } else {
-                    fireOnError(migrationManagerListener, new MigrationFailedException("Account could not be burn because of some unexpected exception"));
+                    MigrationFailedException migrationFailedException = new MigrationFailedException("Account could not be burn because of some unexpected exception");
+                    eventsListener.onAccountBurnFailed(migrationFailedException, balance);
+                    fireOnError(migrationManagerListener, migrationFailedException);
                 }
             } catch (AccountNotFoundException e) {
                 // If no account has been found then we just return a new kin client that runs on the new blockchain
+                eventsListener.onAccountBurnFailed(e, balance);
                 fireOnReady(migrationManagerListener, initNewKin(), true);
             }
         } else {
@@ -225,9 +236,11 @@ public class MigrationManager {
 
     private void migrateToNewKin(final String publicAddress, final MigrationManagerListener migrationManagerListener) {
         Log.d(TAG, "migrateToNewKin: sending the request to migrate");
+        eventsListener.onMigrationStart();
         sendRequest(URL_MIGRATE_ACCOUNT_SERVICE + publicAddress, new Callback() {
             @Override
             public void onFailure(@NonNull Call call, @NonNull IOException e) {
+                eventsListener.onMigrationFailed(e);
                 fireOnError(migrationManagerListener, e);
             }
 
@@ -236,9 +249,12 @@ public class MigrationManager {
                 // TODO: 23/12/2018 if this is running on the ui thread then do the work a background thread
                 // TODO: 23/12/2018 check if response is ok and that indeed the account has been burned
                 if (response.isSuccessful()) {
+
                     fireOnReady(migrationManagerListener, initNewKin(), true);
                 } else {
-                    fireOnError(migrationManagerListener, generateMigrationException(response.body()));
+                    MigrationFailedException exception = generateMigrationException(response.body());
+                    eventsListener.onMigrationFailed(exception);
+                    fireOnError(migrationManagerListener, exception);
                 }
             }
         });
@@ -364,7 +380,7 @@ public class MigrationManager {
     }
 
     public IMigrationEventsListener getMigrationEventsListener() {
-        return migrationEventsListener;
+        return eventsListener;
     }
 
     private static class RetryInterceptor implements Interceptor {

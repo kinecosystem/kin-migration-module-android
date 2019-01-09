@@ -39,7 +39,7 @@ dependencies {
     implementation supportDependencies.supportAnnotations
 
     implementation 'com.github.kinecosystem:kin-sdk-android:3b3f0c0dfe'
-    implementation 'com.github.kinecosystem:kin-core-android:4026794876'
+    implementation 'com.github.kinecosystem:kin-core-android:7713fe0c94'
     api 'com.github.kinecosystem:kin-utils-android:1.1'
 
     testImplementation testingDependencies.junit
