@@ -52,6 +52,8 @@ public class MigrationManager {
     private final static int TIMEOUT = 30;
     private final static int MAX_RETRIES = 3;
     private static final String URL_MIGRATE_ACCOUNT_SERVICE = "https://migration-devplatform-playground.developers.kinecosystem.com/migrate?address=";
+    private static final String SDK_SELECTION_SOURCE_STORAGE = "storage_flag";
+    private static final String SDK_SELECTION_SOURCE_API = "api_check";
 
     private Context context;
     private final String appId;
@@ -117,17 +119,21 @@ public class MigrationManager {
     private void startMigrationProcess(final MigrationManagerListener migrationManagerListener) {
         if (isMigrationAlreadyCompleted()) {
             Log.d(TAG, "startMigrationProcess: migration is already completed in the past");
+            eventsListener.onSDKSelected(true, SDK_SELECTION_SOURCE_STORAGE);
             fireOnReady(migrationManagerListener, initNewKin(), false);
         } else {
             try {
                 IKinVersionProvider.SdkVersion kinSdkVersion = kinVersionProvider.getKinSdkVersion(appId);
                 if (kinSdkVersion == null) {
+                    eventsListener.onMigrationFailed(new Exception("KinSdkVersion returned null"));
                     fireOnError(migrationManagerListener, new FailedToResolveSdkVersionException());
                 }
                 if (kinSdkVersion == IKinVersionProvider.SdkVersion.NEW_KIN_SDK) {
+                    eventsListener.onSDKSelected(true, SDK_SELECTION_SOURCE_API);
                     Log.d(TAG, "startMigrationProcess: new sdk.");
                     burnAndMigrateAccount(migrationManagerListener);
                 } else {
+                    eventsListener.onSDKSelected(false, SDK_SELECTION_SOURCE_API);
                     fireOnReady(migrationManagerListener, initKinCore(), false);
                 }
             } catch (FailedToResolveSdkVersionException e) {
