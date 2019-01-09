@@ -21,6 +21,7 @@ import kin.core.ServiceProvider;
 import kin.sdk.Environment;
 import kin.sdk.migration.core_related.KinAccountCoreImpl;
 import kin.sdk.migration.core_related.KinClientCoreImpl;
+import kin.sdk.migration.exception.AccountNotActivatedException;
 import kin.sdk.migration.exception.AccountNotFoundException;
 import kin.sdk.migration.exception.FailedToResolveSdkVersionException;
 import kin.sdk.migration.exception.MigrationFailedException;
@@ -47,7 +48,7 @@ public class MigrationManager {
     private final static String MIGRATION_COMPLETED_KEY = "MIGRATION_COMPLETED_KEY";
     private final static int TIMEOUT = 30;
     private final static int MAX_RETRIES = 3;
-    private static final String URL_MIGRATE_ACCOUNT_SERVICE = "http://10.4.59.1:8000/migrate?address=";
+    private static final String URL_MIGRATE_ACCOUNT_SERVICE = "https://migration-devplatform-playground.developers.kinecosystem.com/migrate?address=";
 
     private Context context;
     private final String appId;
@@ -75,14 +76,14 @@ public class MigrationManager {
     /**
      * Starting the migration process from Kin2(Core library) to the new Kin(Sdk library - One Blockchain).
      * <p><b>Note:</b> This method internally uses a background thread and it is also access the network.</p>
-     *<p><b>Note:</b> If all the migration process will be completed then this method minimum time is 6 seconds.</p>
+     * <p><b>Note:</b> If all the migration process will be completed then this method minimum time is 6 seconds.</p>
+     * <p><b>Note:</b> This method should be called only once, if required more then create another instance of this class.</p>
      * @param migrationManagerListener is a listener so the caller can get a callback for completion or error(on the UI thread).
      * @throws MigrationInProcessException is thrown in case this method is called while it is not finished.
      */
     public void start(final MigrationManagerListener migrationManagerListener) throws MigrationInProcessException {
-        // TODO: 12/12/2018 this is an api call so we need to make sure the one who implement it knows that
-        // TODO: 12/12/2018 Maybe we should use actual boolean in the constructor or in the init method instead of using it as an interface?
         if (!inMigrationProcess) {
+            inMigrationProcess = true;
             new Thread(new Runnable() {
                 @Override
                 public void run() {
@@ -92,6 +93,8 @@ public class MigrationManager {
                 }
             }).start();
         } else {
+            inMigrationProcess = false;
+            // TODO: 08/01/2019 Currently you can't call this method more than one time even if not in middle of migration so maybe change the exception and handling or let them use it more.
             throw new MigrationInProcessException("You can't start migration while migration is still in process");
         }
     }
@@ -112,7 +115,11 @@ public class MigrationManager {
             fireOnReady(migrationManagerListener, initNewKin(), false);
         } else {
             try {
-                if (kinVersionProvider.getKinSdkVersion(appId) == IKinVersionProvider.SdkVersion.NEW_KIN_SDK) {
+                IKinVersionProvider.SdkVersion kinSdkVersion = kinVersionProvider.getKinSdkVersion(appId);
+                if (kinSdkVersion == null) {
+                    fireOnError(migrationManagerListener, new FailedToResolveSdkVersionException());
+                }
+                if (kinSdkVersion == IKinVersionProvider.SdkVersion.NEW_KIN_SDK) {
                     Log.d(TAG, "startMigrationProcess: new sdk.");
                     burnAndMigrateAccount(migrationManagerListener);
                 } else {
@@ -142,8 +149,8 @@ public class MigrationManager {
                 } else {
                     fireOnError(migrationManagerListener, new MigrationFailedException("Account could not be burn because of some unexpected exception"));
                 }
-            } catch (AccountNotFoundException e) {
-                // If no account has been found then we just return a new kin client that runs on the new blockchain
+            } catch (AccountNotFoundException | AccountNotActivatedException e) {
+                // If no account has been found or it not activated then we just return a new kin client that wil run on the new blockchain.
                 fireOnReady(migrationManagerListener, initNewKin(), true);
             }
         } else {
@@ -160,40 +167,36 @@ public class MigrationManager {
      */
     private boolean startBurnAccountProcess(final String publicAddress, final KinAccountCoreImpl account) throws OperationFailedException {
         if (publicAddress != null) {
-            if (isAccountBurned(publicAddress, account)) {
+            if (isAccountBurned(account)) {
                 Log.d(TAG, "startBurnAccountProcess: account is already burned");
                 return true;
             } else {
                 return burnAccount(publicAddress, account);
             }
         } else {
-            throw new MigrationFailedException("account not valid"); // TODO: 25/12/2018 maybe account not found or not exist?
+            throw new MigrationFailedException("account not valid");
         }
     }
 
-    private boolean isAccountBurned(final String publicAddress, final KinAccountCoreImpl kinAccountCore) throws OperationFailedException {
-        if (publicAddress != null) {
-            int retryCounter = 0;
-            while (true) {
-                try {
-                    Log.d(TAG, "isAccountBurned: ");
-                    return kinAccountCore.isAccountBurned(publicAddress);
-                } catch (OperationFailedException e) {
-                    Throwable cause = e.getCause();
-                    // Check if it is an http exception with 5xx code and if yes then retry until max tries reached.
-                    if (cause instanceof HttpResponseException) {
-                        HttpResponseException httpException = (HttpResponseException) cause;
-                        if (httpException.getStatusCode() >= 500 && retryCounter < MAX_RETRIES) {
-                            retryCounter++;
-                            Log.d(TAG, "isAccountBurned: retry number " + retryCounter);
-                            continue;
-                        }
+    private boolean isAccountBurned(final KinAccountCoreImpl kinAccountCore) throws OperationFailedException {
+        int retryCounter = 0;
+        while (true) {
+            try {
+                Log.d(TAG, "isAccountBurned: ");
+                return kinAccountCore.isAccountBurned();
+            } catch (OperationFailedException e) {
+                Throwable cause = e.getCause();
+                // Check if it is an http exception with 5xx code and if yes then retry until max tries reached.
+                if (cause instanceof HttpResponseException) {
+                    HttpResponseException httpException = (HttpResponseException) cause;
+                    if (httpException.getStatusCode() >= 500 && retryCounter < MAX_RETRIES) {
+                        retryCounter++;
+                        Log.d(TAG, "isAccountBurned: retry number " + retryCounter);
+                        continue;
                     }
-                    throw e;
                 }
+                throw e;
             }
-        } else {
-            throw new MigrationFailedException("account not valid");
         }
     }
 
@@ -215,7 +218,7 @@ public class MigrationManager {
                         continue;
                     }
                 }
-                throw new MigrationFailedException(e.getMessage(), e.getCause());
+                throw new MigrationFailedException(e);
             }
         }
     }
@@ -230,11 +233,10 @@ public class MigrationManager {
 
             @Override
             public void onResponse(@NonNull Call call, @NonNull Response response) {
-                // TODO: 23/12/2018 if this is running on the ui thread then do the work a background thread
-                // TODO: 23/12/2018 check if response is ok and that indeed the account has been burned
                 if (response.isSuccessful()) {
                     fireOnReady(migrationManagerListener, initNewKin(), true);
                 } else {
+                    // TODO: 08/01/2019 we should check if account is already migrated and if yes then return a new kin client or throw exception or something
                     fireOnError(migrationManagerListener, generateMigrationException(response.body()));
                 }
             }
@@ -252,17 +254,17 @@ public class MigrationManager {
                 Map<String, String> error = new Gson().fromJson(body.string(), type);
                 final String code = error.get("code");
                 String message = error.get("message");
-                switch (code) { // TODO: 30/12/2018 when starting the tasks from Yohay meeting then also implement gere
-//                    case "4001":
+                switch (code) { // TODO: 30/12/2018 when starting the tasks from Yohay meeting then also implement here
+//                    case "4001":  // account not burned
 //
 //                        break;
-//                    case "4002":
+//                    case "4002":  // account was already migrated
 //
 //                        break;
-//                    case "4003":
+//                    case "4003":  // public address is not valid
 //
 //                        break;
-//                    case "4041":
+//                    case "4041":  // account was not found
 //
 //                        break;
                     default:
@@ -343,8 +345,8 @@ public class MigrationManager {
                     if (needToSave) {
                         saveMigrationCompleted();
                     }
-                    inMigrationProcess = false;
                     cleanResources(); // clean resources because of completion. TODO: 30/12/2018 can even add a check for this at the start in case someone tries to start migration again
+                    inMigrationProcess = false;
                     migrationManagerListener.onReady(kinClient);
                 }
             }
