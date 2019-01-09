@@ -250,7 +250,7 @@ public class MigrationManager {
             @Override
             public void onResponse(@NonNull Call call, @NonNull Response response) {
                 if (response.isSuccessful()) {
-
+                    eventsListener.onMigrationSuccess(null);
                     fireOnReady(migrationManagerListener, initNewKin(), true);
                 } else {
                     // TODO: 08/01/2019 we should check if account is already migrated and if yes then return a new kin client or throw exception or something                    

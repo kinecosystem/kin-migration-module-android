@@ -12,7 +12,6 @@ public interface IMigrationEventsListener {
     void onSDKSelected(boolean isNewSDK, String source);
 
     void onAccountBurnStart();
-    void onAccountBurnBalanceReceived(BigDecimal balance);
     void onAccountBurnFailed(Exception exception, BigDecimal balance);
     void onAccountBurnSuccess();
 
