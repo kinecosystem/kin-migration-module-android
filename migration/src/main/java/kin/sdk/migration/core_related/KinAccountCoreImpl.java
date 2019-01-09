@@ -120,9 +120,9 @@ public class KinAccountCoreImpl implements IKinAccount {
     }
 
     @NonNull
-    public boolean isAccountBurned(@NonNull String publicAddress) throws OperationFailedException {
+    public boolean isAccountBurned() throws OperationFailedException {
         try {
-            return kinAccount.isAccountBurnedSync(publicAddress);
+            return kinAccount.isAccountBurnedSync();
         } catch (kin.core.exception.AccountNotFoundException e) {
             throw new AccountNotFoundException(e.getAccountId());
         } catch (kin.core.exception.AccountNotActivatedException e) {

@@ -79,7 +79,7 @@ public class KinClientSampleApplication extends Application {
         return kinClient;
     }
 
-    public IKinVersionProvider.SdkVersion isKinSdkVersion() {
+    public IKinVersionProvider.SdkVersion getKinSdkVersion() {
         return sdkVersion;
     }
 

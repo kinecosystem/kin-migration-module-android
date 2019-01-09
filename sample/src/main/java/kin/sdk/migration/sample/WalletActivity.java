@@ -10,6 +10,7 @@ import android.widget.TextView;
 import kin.sdk.migration.interfaces.IAccountStatus;
 import kin.sdk.migration.interfaces.IBalance;
 import kin.sdk.migration.interfaces.IKinAccount;
+import kin.sdk.migration.interfaces.IKinVersionProvider;
 import kin.sdk.migration.interfaces.IListenerRegistration;
 import kin.sdk.migration.exception.DeleteAccountException;
 import kin.utils.Request;
@@ -130,8 +131,8 @@ public class WalletActivity extends BaseActivity {
             onboardBtn.setClickable(false);
 
             OnBoarding onBoarding = new OnBoarding();
-            boolean isNewKin = ((KinClientSampleApplication) getApplication()).isKinSdkVersion();
-                    onBoarding.onBoard(isNewKin, account, new OnBoarding.Callbacks() {
+            IKinVersionProvider.SdkVersion kinSdkVersion = ((KinClientSampleApplication) getApplication()).getKinSdkVersion();
+            onBoarding.onBoard(kinSdkVersion == IKinVersionProvider.SdkVersion.NEW_KIN_SDK, account, new OnBoarding.Callbacks() {
                 @Override
                 public void onSuccess() {
                     updateAccountInfo(true);
