@@ -258,17 +258,16 @@ public class MigrationManager {
             public void onResponse(@NonNull Call call, @NonNull Response response) {
                 if (response.isSuccessful()) {
 
-
+                    Double balance = -1.0;
                     try {
                         JSONObject responseJson = new JSONObject(response.body().string());
-
                         Log.d("MigrationManager", "responseJson: " + responseJson);
-
+                        balance = responseJson.getDouble("balance");
                     } catch (Exception e) {
                         e.printStackTrace();
                     }
 
-                    eventsListener.onMigrationSuccess(new BigDecimal(-1));
+                    eventsListener.onMigrationSuccess(new BigDecimal(balance));
                     fireOnReady(migrationManagerListener, initNewKin(), true);
                 } else {
                     // TODO: 08/01/2019 we should check if account is already migrated and if yes then return a new kin client or throw exception or something                    
