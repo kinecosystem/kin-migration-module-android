@@ -244,7 +244,7 @@ public class KinAccountCoreImpl implements IKinAccount {
     }
 
     @Override
-    public KinSdkVersion KinSdkVersion() {
+    public KinSdkVersion getKinSdkVersion() {
         return KinSdkVersion.OLD_KIN_SDK;
     }
 

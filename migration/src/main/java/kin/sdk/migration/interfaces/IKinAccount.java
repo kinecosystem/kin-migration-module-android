@@ -177,6 +177,6 @@ public interface IKinAccount {
     /**
      * @return true if current account is in the new kin blockchain.,
      */
-    KinSdkVersion KinSdkVersion();
+    KinSdkVersion getKinSdkVersion();
 
 }

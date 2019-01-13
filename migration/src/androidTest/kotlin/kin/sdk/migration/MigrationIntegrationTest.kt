@@ -76,7 +76,7 @@ class MigrationIntegrationTest {
         // starting the migration with a user that only have a local account
         val newKinClient = getKinClientOnNewKinBlockchain()
         val newAccount = newKinClient?.getAccount(newKinClient.accountCount - 1)
-        assertEquals(newAccount?.KinSdkVersion(), KinSdkVersion.NEW_KIN_SDK)
+        assertEquals(newAccount?.getKinSdkVersion(), KinSdkVersion.NEW_KIN_SDK)
         latch.countDown()
         assertTrue(latch.await(timeoutDurationSecondsLong, TimeUnit.SECONDS))
     }
@@ -94,7 +94,7 @@ class MigrationIntegrationTest {
         // starting the migration with a user that have an account also on the blockchain but it is not activated
         val newKinClient = getKinClientOnNewKinBlockchain()
         val newAccount = newKinClient?.getAccount(newKinClient.accountCount - 1)
-        assertEquals(newAccount?.KinSdkVersion(), KinSdkVersion.NEW_KIN_SDK)
+        assertEquals(newAccount?.getKinSdkVersion(), KinSdkVersion.NEW_KIN_SDK)
         latch.countDown()
         assertTrue(latch.await(timeoutDurationSecondsLong, TimeUnit.SECONDS))
     }
@@ -131,7 +131,7 @@ class MigrationIntegrationTest {
 
             override fun onReady(kinClient: IKinClient) {
                 assertTrue(migrationStarted)
-                assertEquals(kinClient.getAccount(kinClient.accountCount - 1).KinSdkVersion(), KinSdkVersion.NEW_KIN_SDK)
+                assertEquals(kinClient.getAccount(kinClient.accountCount - 1).getKinSdkVersion(), KinSdkVersion.NEW_KIN_SDK)
                 assertTrue(isAccountAlreadyMigrated())
                 latch.countDown()
             }
@@ -159,7 +159,7 @@ class MigrationIntegrationTest {
             }
 
             override fun onReady(kinClient: IKinClient) {
-                assertEquals(kinClient.getAccount(kinClient.accountCount - 1).KinSdkVersion(), KinSdkVersion.NEW_KIN_SDK)
+                assertEquals(kinClient.getAccount(kinClient.accountCount - 1).getKinSdkVersion(), KinSdkVersion.NEW_KIN_SDK)
                 latch.countDown()
             }
 
@@ -211,7 +211,7 @@ class MigrationIntegrationTest {
 
             override fun onReady(kinClient: IKinClient) {
                 assertTrue(migrationStarted)
-                assertEquals(kinClient.getAccount(kinClient.accountCount - 1).KinSdkVersion(), KinSdkVersion.NEW_KIN_SDK)
+                assertEquals(kinClient.getAccount(kinClient.accountCount - 1).getKinSdkVersion(), KinSdkVersion.NEW_KIN_SDK)
                 latch.countDown()
             }
 
@@ -239,7 +239,7 @@ class MigrationIntegrationTest {
 
             override fun onReady(kinClient: IKinClient) {
                 assertTrue(migrationStarted)
-                assertEquals(kinClient.getAccount(kinClient.accountCount - 1).KinSdkVersion(), KinSdkVersion.NEW_KIN_SDK)
+                assertEquals(kinClient.getAccount(kinClient.accountCount - 1).getKinSdkVersion(), KinSdkVersion.NEW_KIN_SDK)
                 latch.countDown()
             }
 
@@ -269,7 +269,7 @@ class MigrationIntegrationTest {
 
                 override fun onReady(kinClient: IKinClient) {
                     assertTrue(migrationStarted)
-                    assertEquals(kinClient.getAccount(kinClient.accountCount - 1).KinSdkVersion(), KinSdkVersion.NEW_KIN_SDK)
+                    assertEquals(kinClient.getAccount(kinClient.accountCount - 1).getKinSdkVersion(), KinSdkVersion.NEW_KIN_SDK)
                     latch.countDown()
                 }
 

@@ -193,7 +193,7 @@ public class KinAccountSdkImpl implements IKinAccount {
     }
 
     @Override
-    public KinSdkVersion KinSdkVersion() {
+    public KinSdkVersion getKinSdkVersion() {
         return KinSdkVersion.NEW_KIN_SDK;
     }
 
