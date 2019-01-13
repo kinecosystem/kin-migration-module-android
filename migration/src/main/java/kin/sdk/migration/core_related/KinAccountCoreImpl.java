@@ -11,6 +11,7 @@ import kin.core.KinAccount;
 import kin.core.ListenerRegistration;
 import kin.core.PaymentInfo;
 import kin.core.TransactionId;
+import kin.sdk.migration.KinSdkVersion;
 import kin.sdk.migration.interfaces.IBalance;
 import kin.sdk.migration.interfaces.IEventListener;
 import kin.sdk.migration.interfaces.IKinAccount;
@@ -243,8 +244,8 @@ public class KinAccountCoreImpl implements IKinAccount {
     }
 
     @Override
-    public boolean isNewKinSdk() {
-        return false;
+    public KinSdkVersion KinSdkVersion() {
+        return KinSdkVersion.OLD_KIN_SDK;
     }
 
 }

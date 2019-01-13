@@ -7,6 +7,7 @@ import android.support.v7.widget.SwitchCompat;
 import android.view.View;
 import android.widget.TextView;
 
+import kin.sdk.migration.KinSdkVersion;
 import kin.sdk.migration.interfaces.IAccountStatus;
 import kin.sdk.migration.interfaces.IBalance;
 import kin.sdk.migration.interfaces.IKinAccount;
@@ -131,8 +132,8 @@ public class WalletActivity extends BaseActivity {
             onboardBtn.setClickable(false);
 
             OnBoarding onBoarding = new OnBoarding();
-            IKinVersionProvider.SdkVersion kinSdkVersion = ((KinClientSampleApplication) getApplication()).getKinSdkVersion();
-            onBoarding.onBoard(kinSdkVersion == IKinVersionProvider.SdkVersion.NEW_KIN_SDK, account, new OnBoarding.Callbacks() {
+            KinSdkVersion kinSdkVersion = ((KinClientSampleApplication) getApplication()).getKinSdkVersion();
+            onBoarding.onBoard(kinSdkVersion == KinSdkVersion.NEW_KIN_SDK, account, new OnBoarding.Callbacks() {
                 @Override
                 public void onSuccess() {
                     updateAccountInfo(true);

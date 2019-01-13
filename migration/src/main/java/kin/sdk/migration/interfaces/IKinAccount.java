@@ -2,8 +2,8 @@ package kin.sdk.migration.interfaces;
 
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
-import java.io.IOException;
 import java.math.BigDecimal;
+import kin.sdk.migration.KinSdkVersion;
 import kin.sdk.migration.exception.AccountNotActivatedException;
 import kin.sdk.migration.exception.CryptoException;
 import kin.sdk.migration.exception.OperationFailedException;
@@ -177,6 +177,6 @@ public interface IKinAccount {
     /**
      * @return true if current account is in the new kin blockchain.,
      */
-    boolean isNewKinSdk();
+    KinSdkVersion KinSdkVersion();
 
 }

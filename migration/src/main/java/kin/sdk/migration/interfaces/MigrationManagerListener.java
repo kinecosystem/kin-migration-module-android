@@ -14,9 +14,9 @@ public interface MigrationManagerListener {
     void onReady(IKinClient kinClient);
 
     /**
-     * Method is invoked when an error occured in the migration process
+     * Method is invoked when an error occurred in the migration process
      * @param e is the exception for that error.
      */
-    void onError(Exception e); // TODO: 01/01/2019 how to propogate the migration exception because there could be may exceptions
+    void onError(Exception e);
 
 }

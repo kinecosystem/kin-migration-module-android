@@ -13,6 +13,7 @@ import kin.sdk.ListenerRegistration;
 import kin.sdk.PaymentInfo;
 import kin.sdk.Transaction;
 import kin.sdk.TransactionId;
+import kin.sdk.migration.KinSdkVersion;
 import kin.sdk.migration.exception.InsufficientKinException;
 import kin.sdk.migration.exception.TransactionFailedException;
 import kin.sdk.migration.interfaces.IBalance;
@@ -192,8 +193,8 @@ public class KinAccountSdkImpl implements IKinAccount {
     }
 
     @Override
-    public boolean isNewKinSdk() {
-        return true;
+    public KinSdkVersion KinSdkVersion() {
+        return KinSdkVersion.NEW_KIN_SDK;
     }
 
 }

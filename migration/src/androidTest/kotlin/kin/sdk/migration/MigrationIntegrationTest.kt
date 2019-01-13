@@ -13,6 +13,7 @@ import org.junit.rules.ExpectedException
 import java.io.IOException
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.TimeUnit
+import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertTrue
 import kotlin.test.fail
@@ -54,8 +55,8 @@ class MigrationIntegrationTest {
 
     @Before
     fun setup() {
-        migrationManagerOldKin = getNewMigrationManager(IKinVersionProvider { IKinVersionProvider.SdkVersion.OLD_KIN_SDK })
-        migrationManagerNewKin = getNewMigrationManager(IKinVersionProvider { IKinVersionProvider.SdkVersion.NEW_KIN_SDK })
+        migrationManagerOldKin = getNewMigrationManager(IKinVersionProvider { KinSdkVersion.OLD_KIN_SDK })
+        migrationManagerNewKin = getNewMigrationManager(IKinVersionProvider { KinSdkVersion.NEW_KIN_SDK })
     }
 
     @After
@@ -75,7 +76,7 @@ class MigrationIntegrationTest {
         // starting the migration with a user that only have a local account
         val newKinClient = getKinClientOnNewKinBlockchain()
         val newAccount = newKinClient?.getAccount(newKinClient.accountCount - 1)
-        assertTrue(newAccount?.isNewKinSdk ?: false)
+        assertEquals(newAccount?.KinSdkVersion(), KinSdkVersion.NEW_KIN_SDK)
         latch.countDown()
         assertTrue(latch.await(timeoutDurationSecondsLong, TimeUnit.SECONDS))
     }
@@ -93,7 +94,7 @@ class MigrationIntegrationTest {
         // starting the migration with a user that have an account also on the blockchain but it is not activated
         val newKinClient = getKinClientOnNewKinBlockchain()
         val newAccount = newKinClient?.getAccount(newKinClient.accountCount - 1)
-        assertTrue(newAccount?.isNewKinSdk ?: false)
+        assertEquals(newAccount?.KinSdkVersion(), KinSdkVersion.NEW_KIN_SDK)
         latch.countDown()
         assertTrue(latch.await(timeoutDurationSecondsLong, TimeUnit.SECONDS))
     }
@@ -106,7 +107,7 @@ class MigrationIntegrationTest {
             val migrationManager = getNewMigrationManager(IKinVersionProvider {
                 // waiting so it will be in the middle of the migration process while starting another one.
                 latch.await(timeoutDurationSecondsShort, TimeUnit.SECONDS)
-                IKinVersionProvider.SdkVersion.OLD_KIN_SDK
+                KinSdkVersion.OLD_KIN_SDK
             })
             migrationManager.start(migrationManagerListener)
             // waiting a bit so the started migration will be in the process.
@@ -130,7 +131,7 @@ class MigrationIntegrationTest {
 
             override fun onReady(kinClient: IKinClient) {
                 assertTrue(migrationStarted)
-                assertTrue(kinClient.getAccount(kinClient.accountCount - 1).isNewKinSdk)
+                assertEquals(kinClient.getAccount(kinClient.accountCount - 1).KinSdkVersion(), KinSdkVersion.NEW_KIN_SDK)
                 assertTrue(isAccountAlreadyMigrated())
                 latch.countDown()
             }
@@ -150,7 +151,7 @@ class MigrationIntegrationTest {
         val latch = CountDownLatch(1)
         getNewKinClientAfterMigration()// blocking call
         assertTrue(isAccountAlreadyMigrated())
-        val migrationManager = getNewMigrationManager(IKinVersionProvider { IKinVersionProvider.SdkVersion.NEW_KIN_SDK })
+        val migrationManager = getNewMigrationManager(IKinVersionProvider { KinSdkVersion.NEW_KIN_SDK })
         migrationManager.start(object : MigrationManagerListener {
 
             override fun onMigrationStart() {
@@ -158,7 +159,7 @@ class MigrationIntegrationTest {
             }
 
             override fun onReady(kinClient: IKinClient) {
-                assertTrue(kinClient.getAccount(kinClient.accountCount - 1).isNewKinSdk)
+                assertEquals(kinClient.getAccount(kinClient.accountCount - 1).KinSdkVersion(), KinSdkVersion.NEW_KIN_SDK)
                 latch.countDown()
             }
 
@@ -201,7 +202,7 @@ class MigrationIntegrationTest {
         val latch = CountDownLatch(1)
         getNewKinClientAfterMigration()// blocking call
         teardown()
-        val migrationManager = getNewMigrationManager(IKinVersionProvider {IKinVersionProvider.SdkVersion.NEW_KIN_SDK})
+        val migrationManager = getNewMigrationManager(IKinVersionProvider {KinSdkVersion.NEW_KIN_SDK})
         var migrationStarted = false
         migrationManager.start( object : MigrationManagerListener {
             override fun onMigrationStart() {
@@ -210,7 +211,7 @@ class MigrationIntegrationTest {
 
             override fun onReady(kinClient: IKinClient) {
                 assertTrue(migrationStarted)
-                assertTrue(kinClient.getAccount(kinClient.accountCount - 1).isNewKinSdk)
+                assertEquals(kinClient.getAccount(kinClient.accountCount - 1).KinSdkVersion(), KinSdkVersion.NEW_KIN_SDK)
                 latch.countDown()
             }
 
@@ -228,8 +229,8 @@ class MigrationIntegrationTest {
         val latch = CountDownLatch(1)
         getNewKinClientAfterMigration()// blocking call
         teardown()
-        fail("remove this fail after finished with the TODO")//TODO should add funding to the account so it will not return account not activated whe check if burned
-        val migrationManager = getNewMigrationManager(IKinVersionProvider {IKinVersionProvider.SdkVersion.NEW_KIN_SDK})
+        fail("remove this fail after finished with the TODO")//TODO  add funding with faucet
+        val migrationManager = getNewMigrationManager(IKinVersionProvider {KinSdkVersion.NEW_KIN_SDK})
         migrationManager.start( object : MigrationManagerListener {
             var migrationStarted = false
             override fun onMigrationStart() {
@@ -238,7 +239,7 @@ class MigrationIntegrationTest {
 
             override fun onReady(kinClient: IKinClient) {
                 assertTrue(migrationStarted)
-                assertTrue(kinClient.getAccount(kinClient.accountCount - 1).isNewKinSdk)
+                assertEquals(kinClient.getAccount(kinClient.accountCount - 1).KinSdkVersion(), KinSdkVersion.NEW_KIN_SDK)
                 latch.countDown()
             }
 
@@ -268,7 +269,7 @@ class MigrationIntegrationTest {
 
                 override fun onReady(kinClient: IKinClient) {
                     assertTrue(migrationStarted)
-                    assertTrue(kinClient.getAccount(kinClient.accountCount - 1).isNewKinSdk)
+                    assertEquals(kinClient.getAccount(kinClient.accountCount - 1).KinSdkVersion(), KinSdkVersion.NEW_KIN_SDK)
                     latch.countDown()
                 }
 
