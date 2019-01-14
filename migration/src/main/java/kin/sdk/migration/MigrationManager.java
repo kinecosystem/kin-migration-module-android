@@ -47,8 +47,7 @@ public class MigrationManager {
 	private static final String KIN_MIGRATION_COMPLETED_KEY = "KIN_MIGRATION_COMPLETED_KEY";
 	private static final int TIMEOUT = 30;
 	private static final int MAX_RETRIES = 3;
-//	private static final String URL_MIGRATE_ACCOUNT_SERVICE = "https://migration-devplatform-playground.developers.kinecosystem.com/migrat?address=";
-	private static final String URL_MIGRATE_ACCOUNT_SERVICE = "http://httpstat.us/500";
+	private static final String URL_MIGRATE_ACCOUNT_SERVICE = "https://migration-devplatform-playground.developers.kinecosystem.com/migrat?address=";
 
 	private final Context context;
 	private final String appId;
