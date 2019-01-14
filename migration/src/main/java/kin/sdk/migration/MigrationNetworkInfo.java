@@ -4,11 +4,11 @@ import android.support.annotation.NonNull;
 
 public class MigrationNetworkInfo {
 
-    private String coreNetworkUrl;
-    private String coreNetworkId;
-    private String sdkNetworkUrl;
-    private String sdkNetworkId;
-    private String issuer;
+    private final String coreNetworkUrl;
+    private final String coreNetworkId;
+    private final String sdkNetworkUrl;
+    private final String sdkNetworkId;
+    private final  String issuer;
 
     public MigrationNetworkInfo(@NonNull String coreNetworkUrl, @NonNull String coreNetworkId,
                                 @NonNull String sdkNetworkUrl, @NonNull String sdkNetworkId, @NonNull String issuer){

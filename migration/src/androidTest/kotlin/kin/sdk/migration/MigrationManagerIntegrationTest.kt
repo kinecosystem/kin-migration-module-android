@@ -19,7 +19,7 @@ import kotlin.test.assertTrue
 import kotlin.test.fail
 
 @Suppress("FunctionName")
-class MigrationIntegrationTest {
+class MigrationManagerIntegrationTest {
 
     private val sdkTestNetworkUrl = "http://horizon-testnet.kininfrastructure.com/"
     private val sdkTestNetworkId = "Kin Testnet ; December 2018"
@@ -31,8 +31,9 @@ class MigrationIntegrationTest {
     // exceed their declared trust limit for the asset being sent.
     private val LINE_FULL_RESULT_CODE = "op_line_full"
 
-    private val timeoutDurationSecondsLong: Long = 100 //TODO need to change to a normal number, maybe 20 seconds
-    private val timeoutDurationSecondsShort: Long = 50 //TODO need to change to a normal number, maybe 10 seconds
+    private val timeoutDurationSecondsLong: Long = 100 //TODO need to change to a normal number, maybe 15 seconds
+    private val timeoutDurationSecondsShort: Long = 50 //TODO need to change to a normal number, maybe 5 seconds
+    private val timeoutDurationSecondsVeryShort: Long = 2
     private lateinit var migrationManagerOldKin: MigrationManager
     private lateinit var migrationManagerNewKin: MigrationManager
     private val networkInfo = MigrationNetworkInfo(coreTestNetworkUrl, coreTestNetworkId, sdkTestNetworkUrl,
@@ -76,7 +77,7 @@ class MigrationIntegrationTest {
         // starting the migration with a user that only have a local account
         val newKinClient = getKinClientOnNewKinBlockchain()
         val newAccount = newKinClient?.getAccount(newKinClient.accountCount - 1)
-        assertEquals(newAccount?.getKinSdkVersion(), KinSdkVersion.NEW_KIN_SDK)
+        assertEquals(newAccount?.kinSdkVersion, KinSdkVersion.NEW_KIN_SDK)
         latch.countDown()
         assertTrue(latch.await(timeoutDurationSecondsLong, TimeUnit.SECONDS))
     }
@@ -84,7 +85,6 @@ class MigrationIntegrationTest {
     @Test
     @LargeTest
     fun start_NewKinBlockchain_AccountNotActivated_getNewKinClient() {
-        val latch = CountDownLatch(1)
         // getting a kin client just in order to use it for creating a local account and then start the migration.
         val oldKinClient = getKinClientOnOldKinBlockchain()
         // add account only locally but not in the blockchain
@@ -94,9 +94,7 @@ class MigrationIntegrationTest {
         // starting the migration with a user that have an account also on the blockchain but it is not activated
         val newKinClient = getKinClientOnNewKinBlockchain()
         val newAccount = newKinClient?.getAccount(newKinClient.accountCount - 1)
-        assertEquals(newAccount?.getKinSdkVersion(), KinSdkVersion.NEW_KIN_SDK)
-        latch.countDown()
-        assertTrue(latch.await(timeoutDurationSecondsLong, TimeUnit.SECONDS))
+        assertEquals(newAccount?.kinSdkVersion, KinSdkVersion.NEW_KIN_SDK)
     }
 
     @Test
@@ -405,7 +403,7 @@ class MigrationIntegrationTest {
                 fail("not supposed to reach onError with this exception: $e")
             }
         })
-        latch.await(timeoutDurationSecondsLong, TimeUnit.SECONDS)
+        latch.await(timeoutDurationSecondsVeryShort, TimeUnit.SECONDS)
         return oldKinClient
     }
 

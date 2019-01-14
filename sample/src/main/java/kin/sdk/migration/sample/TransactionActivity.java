@@ -188,12 +188,12 @@ public class TransactionActivity extends BaseActivity {
 
         @Override
         public void onSuccess(String whitelistTransaction) {
-            Log.d(TAG, "WhitelistServiceListener: onSuccess");
+            Log.d(TAG, "WhitelistServiceListenerImpl: onSuccess");
         }
 
         @Override
         public void onFailure(Exception e) {
-            Utils.logError(e, "onWhitelistableTransactionReady");
+            Utils.logError(e, "WhitelistServiceListenerImpl - onFailure");
             KinAlertDialog.createErrorDialog(TransactionActivity.this, e.getMessage()).show();
         }
     }

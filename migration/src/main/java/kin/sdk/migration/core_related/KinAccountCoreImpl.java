@@ -29,8 +29,8 @@ import kin.utils.Request;
 
 public class KinAccountCoreImpl implements IKinAccount {
 
-    private static String MEMO_APP_ID_VERSION_PREFIX = "1";
-    private static String MEMO_DELIMITER = "-";
+    private static final String MEMO_APP_ID_VERSION_PREFIX = "1";
+    private static final String MEMO_DELIMITER = "-";
 
     private final String appId;
     private final KinAccount kinAccount;
@@ -92,15 +92,18 @@ public class KinAccountCoreImpl implements IKinAccount {
     }
 
     private String addAppIdToMemo(@Nullable String memo, @NonNull String appId) {
-        if (memo != null) {
-            StringBuilder sb = new StringBuilder();
-            sb.append(MEMO_APP_ID_VERSION_PREFIX)
-                    .append(MEMO_DELIMITER)
-                    .append(appId)
-                    .append(MEMO_DELIMITER)
-                    .append(memo);
-            memo = sb.toString();
+        if (memo == null) {
+            memo = "";
+        } else {
+            memo = memo.trim(); // remove leading and trailing whitespaces.
         }
+        StringBuilder sb = new StringBuilder();
+        sb.append(MEMO_APP_ID_VERSION_PREFIX)
+                .append(MEMO_DELIMITER)
+                .append(appId)
+                .append(MEMO_DELIMITER)
+                .append(memo);
+        memo = sb.toString();
         return memo;
     }
 
