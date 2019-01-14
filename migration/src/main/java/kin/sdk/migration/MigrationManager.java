@@ -240,7 +240,7 @@ public class MigrationManager {
 	private void migrateToNewKin(final String publicAddress, final MigrationManagerListener migrationManagerListener) {
 		Log.d(TAG, "migrateToNewKin: sending the request to migrate");
 		try {
-			Response response = sendRequest(URL_MIGRATE_ACCOUNT_SERVICE /*+ publicAddress*/);
+			Response response = sendRequest(URL_MIGRATE_ACCOUNT_SERVICE + publicAddress);
 			if (response.isSuccessful()) {
 				fireOnReady(migrationManagerListener, initNewKin(), true);
 			} else {
