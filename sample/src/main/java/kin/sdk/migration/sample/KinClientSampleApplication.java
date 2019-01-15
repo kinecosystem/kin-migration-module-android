@@ -4,6 +4,7 @@ import android.app.Application;
 import android.os.StrictMode;
 import android.os.StrictMode.VmPolicy;
 
+import kin.sdk.migration.KinSdkVersion;
 import kin.sdk.migration.MigrationNetworkInfo;
 import kin.sdk.migration.exception.MigrationInProcessException;
 import kin.sdk.migration.interfaces.IKinClient;
@@ -20,7 +21,7 @@ public class KinClientSampleApplication extends Application {
     private static final String CORE_ISSUER = "GBC3SG6NGTSZ2OMH3FFGB7UVRQWILW367U4GSOOF4TFSZONV42UJXUH7";
 
     private IKinClient kinClient;
-    private IKinVersionProvider.SdkVersion sdkVersion;
+    private KinSdkVersion sdkVersion;
 
     public enum NetWorkType {
         CORE_MAIN,
@@ -43,9 +44,9 @@ public class KinClientSampleApplication extends Application {
         MigrationNetworkInfo migrationNetworkInfo = new MigrationNetworkInfo(CORE_TEST_NETWORK_URL, CORE_TEST_NETWORK_ID,
                                                         SDK_TEST_NETWORK_URL, SDK_TEST_NETWORK_ID, CORE_ISSUER);
         if (type == NetWorkType.SDK_TEST) {
-            sdkVersion = IKinVersionProvider.SdkVersion.NEW_KIN_SDK;
+            sdkVersion = KinSdkVersion.NEW_KIN_SDK;
         } else if (type == NetWorkType.CORE_TEST) {
-            sdkVersion = IKinVersionProvider.SdkVersion.OLD_KIN_SDK;
+            sdkVersion = KinSdkVersion.OLD_KIN_SDK;
         } else {
              // TODO: 24/12/2018 handle it after we have production urls
         }
@@ -79,7 +80,7 @@ public class KinClientSampleApplication extends Application {
         return kinClient;
     }
 
-    public IKinVersionProvider.SdkVersion getKinSdkVersion() {
+    public KinSdkVersion getKinSdkVersion() {
         return sdkVersion;
     }
 
