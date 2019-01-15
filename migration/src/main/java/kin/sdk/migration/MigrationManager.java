@@ -43,11 +43,11 @@ import okhttp3.ResponseBody;
 public class MigrationManager {
 
 	private static final String TAG = MigrationManager.class.getSimpleName();
-	private static final String KIN_MIGRATION_MODULE_PREFERENCE_FILE_KEY = "KIN_MIGRATION_MODULE_PREFERENCE_FILE_KEY";
-	private static final String KIN_MIGRATION_COMPLETED_KEY = "KIN_MIGRATION_COMPLETED_KEY";
+	private static final String KIN_MIGRATION_MODULE_PREFERENCE_FILE_KEY = "kinMigrationModulePreferenceFileKey";
+	private static final String KIN_MIGRATION_COMPLETED_KEY = "kinMigrationCompletedKey";
 	private static final int TIMEOUT = 30;
 	private static final int MAX_RETRIES = 3;
-	private static final String URL_MIGRATE_ACCOUNT_SERVICE = "https://migration-devplatform-playground.developers.kinecosystem.com/migrat?address=";
+	private static final String URL_MIGRATE_ACCOUNT_SERVICE = "https://migration-devplatform-playground.developers.kinecosystem.com/migrate?address=";
 
 	private final Context context;
 	private final String appId;
@@ -73,6 +73,20 @@ public class MigrationManager {
 		this.kinVersionProvider = kinVersionProvider;
 		this.storeKey = storeKey;
 		isMigrationInProcess = new AtomicBoolean();
+	}
+
+	/**
+	 * @return the current kin client.
+	 */
+	public IKinClient getCurrentKinClient() {
+		Log.d(TAG, "getLastKinClient: ");
+		final IKinClient kinClient;
+		if (isMigrationAlreadyCompleted()) {
+			kinClient = initNewKin();
+		} else {
+			kinClient = initKinCore();
+		}
+		return kinClient;
 	}
 
 	/**
