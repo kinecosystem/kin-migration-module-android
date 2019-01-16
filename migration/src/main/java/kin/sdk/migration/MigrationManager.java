@@ -10,16 +10,21 @@ import android.util.Log;
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 
-import java.util.concurrent.atomic.AtomicBoolean;
 import org.stellar.sdk.responses.HttpResponseException;
 
 import java.io.IOException;
 import java.lang.reflect.Type;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import kin.core.ServiceProvider;
 import kin.sdk.Environment;
+import kin.sdk.migration.bi.IMigrationEventsListener;
+import kin.sdk.migration.bi.IMigrationEventsListener.BurnSuccessReason;
+import kin.sdk.migration.bi.IMigrationEventsListener.CheckBurnSuccessReason;
+import kin.sdk.migration.bi.IMigrationEventsListener.RequestAccountMigrationSuccessReason;
+import kin.sdk.migration.bi.IMigrationEventsListener.SelectedSdkReason;
 import kin.sdk.migration.core_related.KinAccountCoreImpl;
 import kin.sdk.migration.core_related.KinClientCoreImpl;
 import kin.sdk.migration.exception.AccountNotActivatedException;
@@ -43,8 +48,8 @@ import okhttp3.ResponseBody;
 public class MigrationManager {
 
     private static final String TAG = MigrationManager.class.getSimpleName();
-    private static final String KIN_MIGRATION_MODULE_PREFERENCE_FILE_KEY = "kinMigrationModulePreferenceFileKey";
-    private static final String KIN_MIGRATION_COMPLETED_KEY = "kinMigrationCompletedKey";
+    static final String KIN_MIGRATION_MODULE_PREFERENCE_FILE_KEY = "KinMigrationModule";
+    static final String KIN_MIGRATION_COMPLETED_KEY = "migration_completed_key";
     private static final int TIMEOUT = 30;
     private static final int MAX_RETRIES = 3;
     private static final String URL_MIGRATE_ACCOUNT_SERVICE = "https://migration-devplatform-playground.developers.kinecosystem.com/migrate?address=";
@@ -54,23 +59,26 @@ public class MigrationManager {
     private final MigrationNetworkInfo migrationNetworkInfo;
     private final IKinVersionProvider kinVersionProvider;
     private final String storeKey;
+    private final IMigrationEventsListener eventsListener;
     private Handler handler;
     private OkHttpClient okHttpClient;
     private final AtomicBoolean isMigrationInProcess; // defence against multiple calls
 
     public MigrationManager(@NonNull Context applicationContext, @NonNull String appId,
                             @NonNull MigrationNetworkInfo migrationNetworkInfo,
-                            @NonNull IKinVersionProvider kinVersionProvider) {
-        this(applicationContext, appId, migrationNetworkInfo, kinVersionProvider, "");
+                            @NonNull IKinVersionProvider kinVersionProvider,
+                            @NonNull IMigrationEventsListener eventsListener) {
+        this(applicationContext, appId, migrationNetworkInfo, kinVersionProvider, eventsListener, "");
     }
 
     public MigrationManager(@NonNull Context applicationContext, @NonNull String appId,
                             @NonNull MigrationNetworkInfo migrationNetworkInfo,
-                            @NonNull IKinVersionProvider kinVersionProvider, @NonNull String storeKey) {
+                            @NonNull IKinVersionProvider kinVersionProvider, @NonNull IMigrationEventsListener eventsListener, @NonNull String storeKey) {
         this.context = applicationContext;
         this.appId = appId;
         this.migrationNetworkInfo = migrationNetworkInfo;
         this.kinVersionProvider = kinVersionProvider;
+        this.eventsListener = eventsListener;
         this.storeKey = storeKey;
         isMigrationInProcess = new AtomicBoolean();
     }
@@ -97,10 +105,11 @@ public class MigrationManager {
      * class.</p>
      *
      * @param migrationManagerListener is a listener so the caller can get a callback for completion or error(on the UI
-     * thread).
+     *                                 thread).
      * @throws MigrationInProcessException is thrown in case this method is called while it is not finished.
      */
     public void start(final MigrationManagerListener migrationManagerListener) throws MigrationInProcessException {
+        eventsListener.onMethodStarted();
         if (isMigrationInProcess.compareAndSet(false, true)) {
             new Thread(new Runnable() {
                 @Override
@@ -128,32 +137,35 @@ public class MigrationManager {
     private void startMigrationProcess(final MigrationManagerListener migrationManagerListener) {
         if (isMigrationAlreadyCompleted()) {
             Log.d(TAG, "startMigrationProcess: migration is already completed in the past");
+            eventsListener.onCallbackReady(KinSdkVersion.NEW_KIN_SDK, SelectedSdkReason.ALREADY_MIGREATED);
             fireOnReady(migrationManagerListener, initNewKin(), false);
         } else {
             try {
+                eventsListener.onVersionCheckStarted();
                 KinSdkVersion kinSdkVersion = kinVersionProvider.getKinSdkVersion(appId);
                 if (kinSdkVersion == null) {
-                    fireOnError(migrationManagerListener, new FailedToResolveSdkVersionException());
+                    Exception failure = new FailedToResolveSdkVersionException();
+                    eventsListener.onVersionCheckFailed(failure);
+                    fireOnError(migrationManagerListener, failure);
                 } else {
                     if (kinSdkVersion == KinSdkVersion.NEW_KIN_SDK) {
                         Log.d(TAG, "startMigrationProcess: new sdk.");
+                        eventsListener.onVersionCheckSucceeded(KinSdkVersion.NEW_KIN_SDK);
                         burnAndMigrateAccount(migrationManagerListener);
                     } else {
+                        eventsListener.onVersionCheckSucceeded(KinSdkVersion.OLD_KIN_SDK);
+                        eventsListener.onCallbackReady(KinSdkVersion.OLD_KIN_SDK, SelectedSdkReason.API_CHECK);
                         fireOnReady(migrationManagerListener, initKinCore(), false);
                     }
                 }
             } catch (FailedToResolveSdkVersionException e) {
+                eventsListener.onVersionCheckFailed(e);
                 fireOnError(migrationManagerListener, e);
-            } catch (MigrationFailedException e) {
-                fireOnError(migrationManagerListener, e);
-            } catch (OperationFailedException e) {
-                fireOnError(migrationManagerListener, new MigrationFailedException(e.getMessage(), e));
             }
         }
     }
 
-    private void burnAndMigrateAccount(MigrationManagerListener migrationManagerListener)
-            throws OperationFailedException {
+    private void burnAndMigrateAccount(MigrationManagerListener migrationManagerListener) {
         KinClientCoreImpl kinClientCore = initKinCore();
         if (kinClientCore.hasAccount()) {
             postMigrationStart(migrationManagerListener);
@@ -162,18 +174,29 @@ public class MigrationManager {
             String publicAddress = account.getPublicAddress();
             Log.d(TAG, "startMigrationProcess: retrieve this account: " + publicAddress);
             try {
-                startBurnAccountProcess(publicAddress, account);
-                migrateToNewKin(publicAddress, migrationManagerListener);
-            } catch (AccountNotFoundException | AccountNotActivatedException e) {
-                // If no account has been found or it not activated then we just return a new kin client that wil run on the new blockchain.
-                fireOnReady(migrationManagerListener, initNewKin(), true);
+                BurnSuccessReason burnSuccessReason = startBurnAccountProcess(publicAddress, account);
+                switch (burnSuccessReason) {
+                    case BURNED:
+                    case ALREADY_BURNED:
+                        migrateToNewKin(publicAddress, migrationManagerListener);
+                        break;
+                    case NO_ACCOUNT:
+                    case NO_TRUSTLINE:
+                        eventsListener.onCallbackReady(KinSdkVersion.NEW_KIN_SDK, SelectedSdkReason.NO_ACCOUNT_TO_MIGRATE);
+                        fireOnReady(migrationManagerListener, initNewKin(), true);
+                        break;
+                }
+            } catch (MigrationFailedException e) {
+                fireOnError(migrationManagerListener, e);
             }
         } else {
+            eventsListener.onCallbackReady(KinSdkVersion.NEW_KIN_SDK, SelectedSdkReason.NO_ACCOUNT_TO_MIGRATE);
             fireOnReady(migrationManagerListener, initNewKin(), true);
         }
     }
 
     private void postMigrationStart(final MigrationManagerListener migrationManagerListener) {
+        eventsListener.onCallbackStart();
         handler.post(new Runnable() {
             @Override
             public void run() {
@@ -184,56 +207,94 @@ public class MigrationManager {
 
     /**
      * Start the burn account process which checks if the account was already burned and if not then burned it.
+     *
      * @param account is the kin account.
-     * @throws MigrationFailedException a general Migration Exception with a concrete message about the exception.
+     * @return boolean indicates whether migration is needed
      */
-    private void startBurnAccountProcess(final String publicAddress, final KinAccountCoreImpl account)
-            throws OperationFailedException {
+    @NonNull
+    private BurnSuccessReason startBurnAccountProcess(final String publicAddress, final KinAccountCoreImpl account)
+            throws MigrationFailedException {
         if (publicAddress != null) {
-            if (isAccountBurned(account)) {
-                Log.d(TAG, "startBurnAccountProcess: account is already burned");
-            } else {
-                burnAccount(publicAddress, account);
+            CheckBurnSuccessReason state = checkAccountBurnedState(account);
+            switch (state) {
+                case NOT_BURNED:
+                    return burnAccount(publicAddress, account);
+                case ALREADY_BURNED:
+                    return BurnSuccessReason.ALREADY_BURNED;
+                case NO_ACCOUNT:
+                    return BurnSuccessReason.NO_ACCOUNT;
+                case NO_TRUSTLINE:
+                    return BurnSuccessReason.NO_TRUSTLINE;
+                default:
+                    throw new MigrationFailedException("checkAccountBurnedState returned unexpected result");
             }
         } else {
             throw new MigrationFailedException("account not valid - public address is null");
         }
     }
 
-    private boolean isAccountBurned(final KinAccountCoreImpl kinAccountCore) throws OperationFailedException {
+    @NonNull
+    private CheckBurnSuccessReason checkAccountBurnedState(final KinAccountCoreImpl kinAccountCore) throws MigrationFailedException {
+        String publicAddress = kinAccountCore.getPublicAddress();
+        eventsListener.onCheckBurnStarted(publicAddress);
         int retryCounter = 0;
         while (true) {
             try {
-                Log.d(TAG, "isAccountBurned: ");
-                return kinAccountCore.isAccountBurned();
+                Log.d(TAG, "checkAccountBurnedState: ");
+                if (kinAccountCore.isAccountBurned()) {
+                    eventsListener.onCheckBurnSucceeded(publicAddress, CheckBurnSuccessReason.ALREADY_BURNED);
+                    return CheckBurnSuccessReason.ALREADY_BURNED;
+                } else {
+                    eventsListener.onCheckBurnSucceeded(publicAddress, CheckBurnSuccessReason.NOT_BURNED);
+                    return CheckBurnSuccessReason.NOT_BURNED;
+                }
+            } catch (AccountNotFoundException e) {
+                eventsListener.onCheckBurnSucceeded(publicAddress, CheckBurnSuccessReason.NO_ACCOUNT);
+                return CheckBurnSuccessReason.NO_ACCOUNT;
+            } catch (AccountNotActivatedException e) {
+                eventsListener.onCheckBurnSucceeded(publicAddress, CheckBurnSuccessReason.NO_TRUSTLINE);
+                return CheckBurnSuccessReason.NO_TRUSTLINE;
             } catch (OperationFailedException e) {
                 if (shouldRetry(retryCounter, e)) {
-                    Log.d(TAG, "isAccountBurned: retry number " + retryCounter);
+                    Log.d(TAG, "checkAccountBurnedState: retry number " + retryCounter);
                     retryCounter++;
                     continue;
                 }
+                eventsListener.onCheckBurnFailed(publicAddress, e);
                 throw new MigrationFailedException("Checking if the old account is burned has failed", e);
             }
         }
     }
 
-    private void burnAccount(String publicAddress, KinAccountCoreImpl account) throws MigrationFailedException {
+    private BurnSuccessReason burnAccount(String publicAddress, KinAccountCoreImpl account) throws MigrationFailedException {
+        eventsListener.onBurnStarted(publicAddress);
         int retryCounter = 0;
         while (true) {
             try {
                 Log.d(TAG, "burnAccount: ");
                 ITransactionId transactionId = account.sendBurnTransactionSync(publicAddress);
                 if (transactionId.id() == null || transactionId.id().isEmpty()) {
-                    throw new OperationFailedException("Burning the account could not succeed due to an unexpected error");
+                    MigrationFailedException exception =
+                            new MigrationFailedException("Burning the account could not succeed due to an unexpected error, transaction id is empty");
+                    eventsListener.onBurnFailed(publicAddress, exception);
+                    throw exception;
                 } else {
-                    break;
+                    eventsListener.onBurnSucceeded(publicAddress, BurnSuccessReason.BURNED);
+                    return BurnSuccessReason.BURNED;
                 }
+            } catch (AccountNotFoundException e) {
+                eventsListener.onBurnSucceeded(publicAddress, BurnSuccessReason.NO_ACCOUNT);
+                return BurnSuccessReason.NO_ACCOUNT;
+            } catch (AccountNotActivatedException e) {
+                eventsListener.onBurnSucceeded(publicAddress, BurnSuccessReason.NO_TRUSTLINE);
+                return BurnSuccessReason.NO_TRUSTLINE;
             } catch (OperationFailedException e) {
                 if (shouldRetry(retryCounter, e)) {
                     Log.d(TAG, "burnAccount: retry number " + retryCounter);
-                    retryCounter++;  // TODO: 30/12/2018 maybe need to catch more exception for the retry? like java.net.ConnectException?
+                    retryCounter++;
                     continue;
                 }
+                eventsListener.onBurnFailed(publicAddress, e);
                 throw new MigrationFailedException("Burning the old account failed", e);
             }
         }
@@ -252,21 +313,25 @@ public class MigrationManager {
     }
 
     private void migrateToNewKin(final String publicAddress, final MigrationManagerListener migrationManagerListener) {
+        eventsListener.onRequestAccountMigrationStarted(publicAddress);
         Log.d(TAG, "migrateToNewKin: sending the request to migrate");
         try {
             Response response = sendRequest(URL_MIGRATE_ACCOUNT_SERVICE + publicAddress);
             if (response.isSuccessful()) {
+                eventsListener.onRequestAccountMigrationSucceeded(publicAddress, RequestAccountMigrationSuccessReason.MIGRATED);
+                eventsListener.onCallbackReady(KinSdkVersion.NEW_KIN_SDK, SelectedSdkReason.MIGRATED);
                 fireOnReady(migrationManagerListener, initNewKin(), true);
             } else {
-                handleMigrationException(response, migrationManagerListener);
+                handleMigrationException(response, migrationManagerListener, publicAddress);
             }
         } catch (IOException e) {
+            eventsListener.onRequestAccountMigrationFailed(publicAddress, e);
             fireOnError(migrationManagerListener, e);
         }
     }
 
     // Handle the migration exceptions, if an exception that is not solvable then throw it, else just handle it.
-    private void handleMigrationException(Response response, MigrationManagerListener migrationManagerListener) {
+    private void handleMigrationException(Response response, MigrationManagerListener migrationManagerListener, String publicAddress) {
         // check if account has been migrated successfully and if yes then complete the process and update the persistent state.
         Log.d(TAG, "generateMigrationException: ");
         boolean handled = false;
@@ -285,6 +350,8 @@ public class MigrationManager {
                             exception = new MigrationFailedException(message + ", code = " + code);
                             break;
                         case "4002":  // account was already migrated
+                            eventsListener.onRequestAccountMigrationSucceeded(publicAddress, RequestAccountMigrationSuccessReason.ALREADTY_MIGRATED);
+                            eventsListener.onCallbackReady(KinSdkVersion.NEW_KIN_SDK, SelectedSdkReason.ALREADY_MIGREATED);
                             fireOnReady(migrationManagerListener, initNewKin(), true);
                             handled = true;
                             break;
@@ -292,6 +359,8 @@ public class MigrationManager {
                             exception = new MigrationFailedException(message + ", code = " + code);
                             break;
                         case "4041":  // account was not found
+                            eventsListener.onRequestAccountMigrationSucceeded(publicAddress, RequestAccountMigrationSuccessReason.ACCOUNT_NOT_FOUND);
+                            eventsListener.onCallbackReady(KinSdkVersion.NEW_KIN_SDK, SelectedSdkReason.NO_ACCOUNT_TO_MIGRATE);
                             fireOnReady(migrationManagerListener, initNewKin(), true);
                             handled = true;
                             break;
@@ -307,6 +376,7 @@ public class MigrationManager {
             exception = new MigrationFailedException("Body is null, response code is = " + response.code());
         }
         if (!handled) {
+            eventsListener.onRequestAccountMigrationFailed(publicAddress, exception);
             fireOnError(migrationManagerListener, exception);
         }
     }
@@ -358,6 +428,7 @@ public class MigrationManager {
 
     private void fireOnError(final MigrationManagerListener migrationManagerListener, final Exception e) {
         Log.d(TAG, "fireOnError: ");
+        eventsListener.onCallbackFailed(e);
         handler.post(new Runnable() {
             @Override
             public void run() {
@@ -409,7 +480,7 @@ public class MigrationManager {
             Response another = chain.proceed(newRequest);
             while (retryCounter < MAX_RETRIES && another.code() >= 500) {
                 retryCounter++;
-                retryRequest(newRequest, chain); // recursive call
+                another = retryRequest(newRequest, chain); // recursive call
             }
             return another;
         }

@@ -1,58 +1,91 @@
 package kin.sdk.migration.sample;
 
-import java.math.BigDecimal;
+import android.util.Log;
 
+import kin.sdk.migration.KinSdkVersion;
 import kin.sdk.migration.bi.IMigrationEventsListener;
-import kin.sdk.migration.interfaces.IKinVersionProvider;
 
 public class SampleMigrationEventsListener implements IMigrationEventsListener {
-    @Override
-    public void onVersionCheckStart() {
 
+    private final static String TAG = SampleMigrationEventsListener.class.getSimpleName();
+
+    @Override
+    public void onMethodStarted() {
+        Log.d(TAG, "onMethodStarted");
     }
 
     @Override
-    public void onVersionReceived(IKinVersionProvider.SdkVersion sdkVersion) {
+    public void onVersionCheckStarted() {
+        Log.d(TAG, "onVersionCheckStarted");
+    }
 
+    @Override
+    public void onVersionCheckSucceeded(KinSdkVersion sdkVersion) {
+        Log.d(TAG, "onVersionCheckSucceeded, sdkVersion = " + sdkVersion.name());
     }
 
     @Override
     public void onVersionCheckFailed(Exception exception) {
-
+        Utils.logError(exception, "onVersionCheckFailed");
     }
 
     @Override
-    public void onSDKSelected(boolean isNewSDK, String source) {
-
+    public void onCallbackStart() {
+        Log.d(TAG, "onCallbackStart");
     }
 
     @Override
-    public void onAccountBurnStart() {
-
+    public void onCheckBurnStarted(String publicAddress) {
+        Log.d(TAG, "onCheckBurnStarted, publicAddress = " + publicAddress);
     }
 
     @Override
-    public void onAccountBurnFailed(Exception exception, BigDecimal balance) {
-
+    public void onCheckBurnSucceeded(String publicAddress, CheckBurnSuccessReason reason) {
+        Log.d(TAG, "onCheckBurnSucceeded, publicAddress = " + publicAddress + " reason = " + reason.name());
     }
 
     @Override
-    public void onAccountBurnSuccess() {
-
+    public void onCheckBurnFailed(String publicAddress, Exception exception) {
+        Utils.logError(exception, "onCheckBurnFailed, publicAddress = " + publicAddress);
     }
 
     @Override
-    public void onMigrationStart() {
-
+    public void onBurnStarted(String publicAddress) {
+        Log.d(TAG, "onBurnStarted, publicAddress = " + publicAddress);
     }
 
     @Override
-    public void onMigrationFailed(Exception exception) {
-
+    public void onBurnSucceeded(String publicAddress, BurnSuccessReason reason) {
+        Log.d(TAG, "onBurnSucceeded, publicAddress = " + publicAddress + " reason = " + reason.name());
     }
 
     @Override
-    public void onMigrationSuccess(BigDecimal balance) {
+    public void onBurnFailed(String publicAddress, Exception exception) {
+        Utils.logError(exception, "onBurnFailed, publicAddress = " + publicAddress);
+    }
 
+    @Override
+    public void onRequestAccountMigrationStarted(String publicAddress) {
+        Log.d(TAG, "onRequestAccountMigrationStarted, publicAddress = " + publicAddress);
+    }
+
+    @Override
+    public void onRequestAccountMigrationSucceeded(String publicAddress, RequestAccountMigrationSuccessReason reason) {
+        Log.d(TAG, "onRequestAccountMigrationSucceeded, publicAddress = " + publicAddress + " reason = " + reason.name());
+    }
+
+    @Override
+    public void onRequestAccountMigrationFailed(String publicAddress, Exception exception) {
+        Utils.logError(exception, "onRequestAccountMigrationFailed, publicAddress = " + publicAddress);
+    }
+
+    @Override
+    public void onCallbackReady(KinSdkVersion sdkVersion, SelectedSdkReason selectedSdkReason) {
+        Log.d(TAG, "onCallbackReady, sdkVersion = " + sdkVersion.name() + " selectedSdkVersion = " + selectedSdkReason.name());
+    }
+
+    @Override
+    public void onCallbackFailed(Exception exception) {
+        Utils.logError(exception, "onCallbackFailed");
     }
 }
