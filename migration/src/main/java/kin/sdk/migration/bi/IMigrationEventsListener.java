@@ -4,32 +4,98 @@ import kin.sdk.migration.KinSdkVersion;
 
 public interface IMigrationEventsListener {
 
-    enum CheckBurnSuccessReason {
-        NOT_BURNED,
-        ALREADY_BURNED,
-        NO_ACCOUNT,
-        NO_TRUSTLINE
-    }
-
-    enum BurnSuccessReason {
-        BURNED,
-        ALREADY_BURNED,
-        NO_ACCOUNT,
-        NO_TRUSTLINE
-    }
-
     enum RequestAccountMigrationSuccessReason {
-        MIGRATED,
-        ALREADTY_MIGRATED,
-        ACCOUNT_NOT_FOUND
+
+        MIGRATED("migrated"),
+        ALREADY_MIGRATED("already_migrated"),
+        ACCOUNT_NOT_FOUND("account_not_found");
+        private final String value;
+
+        private RequestAccountMigrationSuccessReason(String value) {
+            this.value = value;
+        }
+
+        @Override
+        public String toString() {
+            return this.value;
+        }
+
+        public String value() {
+            return this.value;
+        }
+
     }
 
     enum SelectedSdkReason {
-        MIGRATED,
-        ALREADY_MIGREATED,
-        NO_ACCOUNT_TO_MIGRATE,
-        API_CHECK
+
+        MIGRATED("migrated"),
+        ALREADY_MIGRATED("already_migrated"),
+        NO_ACCOUNT_TO_MIGRATE("no_account_to_migrate"),
+        API_CHECK("api_check");
+        private final String value;
+
+        private SelectedSdkReason(String value) {
+            this.value = value;
+        }
+
+        @Override
+        public String toString() {
+            return this.value;
+        }
+
+        public String value() {
+            return this.value;
+        }
+
     }
+
+
+    enum BurnReason {
+
+        BURNED("burned"),
+        ALREADY_BURNED("already_burned"),
+        NO_ACCOUNT("no_account"),
+        NO_TRUSTLINE("no_trustline");
+        private final String value;
+
+        private BurnReason(String value) {
+            this.value = value;
+        }
+
+        @Override
+        public String toString() {
+            return this.value;
+        }
+
+        public String value() {
+            return this.value;
+        }
+    }
+
+
+    enum CheckBurnReason {
+
+        NOT_BURNED("not_burned"),
+        ALREADY_BURNED("already_burned"),
+        NO_ACCOUNT("no_account"),
+        NO_TRUSTLINE("no_trustline");
+        private final String value;
+
+        private CheckBurnReason(String value) {
+            this.value = value;
+        }
+
+        @Override
+        public String toString() {
+            return this.value;
+        }
+
+        public String value() {
+            return this.value;
+        }
+
+    }
+
 
     void onMethodStarted();
 
@@ -43,13 +109,13 @@ public interface IMigrationEventsListener {
 
     void onCheckBurnStarted(String publicAddress);
 
-    void onCheckBurnSucceeded(String publicAddress, CheckBurnSuccessReason reason);
+    void onCheckBurnSucceeded(String publicAddress, CheckBurnReason reason);
 
     void onCheckBurnFailed(String publicAddress, Exception exception);
 
     void onBurnStarted(String publicAddress);
 
-    void onBurnSucceeded(String publicAddress, BurnSuccessReason reason);
+    void onBurnSucceeded(String publicAddress, BurnReason reason);
 
     void onBurnFailed(String publicAddress, Exception exception);
 

@@ -40,7 +40,7 @@ public class SampleMigrationEventsListener implements IMigrationEventsListener {
     }
 
     @Override
-    public void onCheckBurnSucceeded(String publicAddress, CheckBurnSuccessReason reason) {
+    public void onCheckBurnSucceeded(String publicAddress, CheckBurnReason reason) {
         Log.d(TAG, "onCheckBurnSucceeded, publicAddress = " + publicAddress + " reason = " + reason.name());
     }
 
@@ -55,7 +55,7 @@ public class SampleMigrationEventsListener implements IMigrationEventsListener {
     }
 
     @Override
-    public void onBurnSucceeded(String publicAddress, BurnSuccessReason reason) {
+    public void onBurnSucceeded(String publicAddress, BurnReason reason) {
         Log.d(TAG, "onBurnSucceeded, publicAddress = " + publicAddress + " reason = " + reason.name());
     }
 

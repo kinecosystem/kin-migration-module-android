@@ -21,8 +21,8 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import kin.core.ServiceProvider;
 import kin.sdk.Environment;
 import kin.sdk.migration.bi.IMigrationEventsListener;
-import kin.sdk.migration.bi.IMigrationEventsListener.BurnSuccessReason;
-import kin.sdk.migration.bi.IMigrationEventsListener.CheckBurnSuccessReason;
+import kin.sdk.migration.bi.IMigrationEventsListener.BurnReason;
+import kin.sdk.migration.bi.IMigrationEventsListener.CheckBurnReason;
 import kin.sdk.migration.bi.IMigrationEventsListener.RequestAccountMigrationSuccessReason;
 import kin.sdk.migration.bi.IMigrationEventsListener.SelectedSdkReason;
 import kin.sdk.migration.core_related.KinAccountCoreImpl;
@@ -137,7 +137,7 @@ public class MigrationManager {
     private void startMigrationProcess(final MigrationManagerListener migrationManagerListener) {
         if (isMigrationAlreadyCompleted()) {
             Log.d(TAG, "startMigrationProcess: migration is already completed in the past");
-            eventsListener.onCallbackReady(KinSdkVersion.NEW_KIN_SDK, SelectedSdkReason.ALREADY_MIGREATED);
+            eventsListener.onCallbackReady(KinSdkVersion.NEW_KIN_SDK, SelectedSdkReason.ALREADY_MIGRATED);
             fireOnReady(migrationManagerListener, initNewKin(), false);
         } else {
             try {
@@ -174,7 +174,7 @@ public class MigrationManager {
             String publicAddress = account.getPublicAddress();
             Log.d(TAG, "startMigrationProcess: retrieve this account: " + publicAddress);
             try {
-                BurnSuccessReason burnSuccessReason = startBurnAccountProcess(publicAddress, account);
+                BurnReason burnSuccessReason = startBurnAccountProcess(publicAddress, account);
                 switch (burnSuccessReason) {
                     case BURNED:
                     case ALREADY_BURNED:
@@ -212,19 +212,19 @@ public class MigrationManager {
      * @return boolean indicates whether migration is needed
      */
     @NonNull
-    private BurnSuccessReason startBurnAccountProcess(final String publicAddress, final KinAccountCoreImpl account)
+    private BurnReason startBurnAccountProcess(final String publicAddress, final KinAccountCoreImpl account)
             throws MigrationFailedException {
         if (publicAddress != null) {
-            CheckBurnSuccessReason state = checkAccountBurnedState(account);
+            CheckBurnReason state = checkAccountBurnedState(account);
             switch (state) {
                 case NOT_BURNED:
                     return burnAccount(publicAddress, account);
                 case ALREADY_BURNED:
-                    return BurnSuccessReason.ALREADY_BURNED;
+                    return BurnReason.ALREADY_BURNED;
                 case NO_ACCOUNT:
-                    return BurnSuccessReason.NO_ACCOUNT;
+                    return BurnReason.NO_ACCOUNT;
                 case NO_TRUSTLINE:
-                    return BurnSuccessReason.NO_TRUSTLINE;
+                    return BurnReason.NO_TRUSTLINE;
                 default:
                     throw new MigrationFailedException("checkAccountBurnedState returned unexpected result");
             }
@@ -234,7 +234,7 @@ public class MigrationManager {
     }
 
     @NonNull
-    private CheckBurnSuccessReason checkAccountBurnedState(final KinAccountCoreImpl kinAccountCore) throws MigrationFailedException {
+    private CheckBurnReason checkAccountBurnedState(final KinAccountCoreImpl kinAccountCore) throws MigrationFailedException {
         String publicAddress = kinAccountCore.getPublicAddress();
         eventsListener.onCheckBurnStarted(publicAddress);
         int retryCounter = 0;
@@ -242,18 +242,18 @@ public class MigrationManager {
             try {
                 Log.d(TAG, "checkAccountBurnedState: ");
                 if (kinAccountCore.isAccountBurned()) {
-                    eventsListener.onCheckBurnSucceeded(publicAddress, CheckBurnSuccessReason.ALREADY_BURNED);
-                    return CheckBurnSuccessReason.ALREADY_BURNED;
+                    eventsListener.onCheckBurnSucceeded(publicAddress, CheckBurnReason.ALREADY_BURNED);
+                    return CheckBurnReason.ALREADY_BURNED;
                 } else {
-                    eventsListener.onCheckBurnSucceeded(publicAddress, CheckBurnSuccessReason.NOT_BURNED);
-                    return CheckBurnSuccessReason.NOT_BURNED;
+                    eventsListener.onCheckBurnSucceeded(publicAddress, CheckBurnReason.NOT_BURNED);
+                    return CheckBurnReason.NOT_BURNED;
                 }
             } catch (AccountNotFoundException e) {
-                eventsListener.onCheckBurnSucceeded(publicAddress, CheckBurnSuccessReason.NO_ACCOUNT);
-                return CheckBurnSuccessReason.NO_ACCOUNT;
+                eventsListener.onCheckBurnSucceeded(publicAddress, CheckBurnReason.NO_ACCOUNT);
+                return CheckBurnReason.NO_ACCOUNT;
             } catch (AccountNotActivatedException e) {
-                eventsListener.onCheckBurnSucceeded(publicAddress, CheckBurnSuccessReason.NO_TRUSTLINE);
-                return CheckBurnSuccessReason.NO_TRUSTLINE;
+                eventsListener.onCheckBurnSucceeded(publicAddress, CheckBurnReason.NO_TRUSTLINE);
+                return CheckBurnReason.NO_TRUSTLINE;
             } catch (OperationFailedException e) {
                 if (shouldRetry(retryCounter, e)) {
                     Log.d(TAG, "checkAccountBurnedState: retry number " + retryCounter);
@@ -266,7 +266,7 @@ public class MigrationManager {
         }
     }
 
-    private BurnSuccessReason burnAccount(String publicAddress, KinAccountCoreImpl account) throws MigrationFailedException {
+    private BurnReason burnAccount(String publicAddress, KinAccountCoreImpl account) throws MigrationFailedException {
         eventsListener.onBurnStarted(publicAddress);
         int retryCounter = 0;
         while (true) {
@@ -279,15 +279,15 @@ public class MigrationManager {
                     eventsListener.onBurnFailed(publicAddress, exception);
                     throw exception;
                 } else {
-                    eventsListener.onBurnSucceeded(publicAddress, BurnSuccessReason.BURNED);
-                    return BurnSuccessReason.BURNED;
+                    eventsListener.onBurnSucceeded(publicAddress, BurnReason.BURNED);
+                    return BurnReason.BURNED;
                 }
             } catch (AccountNotFoundException e) {
-                eventsListener.onBurnSucceeded(publicAddress, BurnSuccessReason.NO_ACCOUNT);
-                return BurnSuccessReason.NO_ACCOUNT;
+                eventsListener.onBurnSucceeded(publicAddress, BurnReason.NO_ACCOUNT);
+                return BurnReason.NO_ACCOUNT;
             } catch (AccountNotActivatedException e) {
-                eventsListener.onBurnSucceeded(publicAddress, BurnSuccessReason.NO_TRUSTLINE);
-                return BurnSuccessReason.NO_TRUSTLINE;
+                eventsListener.onBurnSucceeded(publicAddress, BurnReason.NO_TRUSTLINE);
+                return BurnReason.NO_TRUSTLINE;
             } catch (OperationFailedException e) {
                 if (shouldRetry(retryCounter, e)) {
                     Log.d(TAG, "burnAccount: retry number " + retryCounter);
@@ -350,8 +350,8 @@ public class MigrationManager {
                             exception = new MigrationFailedException(message + ", code = " + code);
                             break;
                         case "4002":  // account was already migrated
-                            eventsListener.onRequestAccountMigrationSucceeded(publicAddress, RequestAccountMigrationSuccessReason.ALREADTY_MIGRATED);
-                            eventsListener.onCallbackReady(KinSdkVersion.NEW_KIN_SDK, SelectedSdkReason.ALREADY_MIGREATED);
+                            eventsListener.onRequestAccountMigrationSucceeded(publicAddress, RequestAccountMigrationSuccessReason.ALREADY_MIGRATED);
+                            eventsListener.onCallbackReady(KinSdkVersion.NEW_KIN_SDK, SelectedSdkReason.ALREADY_MIGRATED);
                             fireOnReady(migrationManagerListener, initNewKin(), true);
                             handled = true;
                             break;
