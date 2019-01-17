@@ -237,7 +237,7 @@ class MigrationManagerIntegrationTest {
 
             override fun onReady(kinClient: IKinClient) {
                 assertTrue(migrationStarted)
-                assertEquals(kinClient.getAccount(kinClient.accountCount - 1).getKinSdkVersion(), KinSdkVersion.NEW_KIN_SDK)
+                assertEquals(kinClient.getAccount(kinClient.accountCount - 1).kinSdkVersion, KinSdkVersion.NEW_KIN_SDK)
                 latch.countDown()
             }
 
@@ -267,7 +267,7 @@ class MigrationManagerIntegrationTest {
 
                 override fun onReady(kinClient: IKinClient) {
                     assertTrue(migrationStarted)
-                    assertEquals(kinClient.getAccount(kinClient.accountCount - 1).getKinSdkVersion(), KinSdkVersion.NEW_KIN_SDK)
+                    assertEquals(kinClient.getAccount(kinClient.accountCount - 1).kinSdkVersion, KinSdkVersion.NEW_KIN_SDK)
                     latch.countDown()
                 }
 

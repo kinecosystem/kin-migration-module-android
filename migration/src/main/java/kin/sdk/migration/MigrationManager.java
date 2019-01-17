@@ -6,18 +6,13 @@ import android.os.Handler;
 import android.os.Looper;
 import android.support.annotation.NonNull;
 import android.util.Log;
-
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
-
-import java.util.concurrent.atomic.AtomicBoolean;
-import org.stellar.sdk.responses.HttpResponseException;
-
 import java.io.IOException;
 import java.lang.reflect.Type;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
-
+import java.util.concurrent.atomic.AtomicBoolean;
 import kin.core.ServiceProvider;
 import kin.sdk.Environment;
 import kin.sdk.migration.core_related.KinAccountCoreImpl;
@@ -39,6 +34,7 @@ import okhttp3.Request;
 import okhttp3.RequestBody;
 import okhttp3.Response;
 import okhttp3.ResponseBody;
+import org.stellar.sdk.responses.HttpResponseException;
 
 public class MigrationManager {
 
@@ -67,7 +63,7 @@ public class MigrationManager {
 	public MigrationManager(@NonNull Context applicationContext, @NonNull String appId,
 		@NonNull MigrationNetworkInfo migrationNetworkInfo,
 		@NonNull IKinVersionProvider kinVersionProvider, @NonNull String storeKey) {
-		this.context = applicationContext;
+		this.context = applicationContext.getApplicationContext();
 		this.appId = appId;
 		this.migrationNetworkInfo = migrationNetworkInfo;
 		this.kinVersionProvider = kinVersionProvider;
@@ -131,7 +127,7 @@ public class MigrationManager {
 			fireOnReady(migrationManagerListener, initNewKin(), false);
 		} else {
 			try {
-				KinSdkVersion kinSdkVersion = kinVersionProvider.getKinSdkVersion(appId);
+				final KinSdkVersion kinSdkVersion = kinVersionProvider.getKinSdkVersion();
 				if (kinSdkVersion == null) {
 					fireOnError(migrationManagerListener, new FailedToResolveSdkVersionException());
 				} else {

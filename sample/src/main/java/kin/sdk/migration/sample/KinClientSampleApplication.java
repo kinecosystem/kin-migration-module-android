@@ -3,13 +3,11 @@ package kin.sdk.migration.sample;
 import android.app.Application;
 import android.os.StrictMode;
 import android.os.StrictMode.VmPolicy;
-
 import kin.sdk.migration.KinSdkVersion;
+import kin.sdk.migration.MigrationManager;
 import kin.sdk.migration.MigrationNetworkInfo;
 import kin.sdk.migration.exception.MigrationInProcessException;
 import kin.sdk.migration.interfaces.IKinClient;
-import kin.sdk.migration.MigrationManager;
-import kin.sdk.migration.interfaces.IKinVersionProvider;
 import kin.sdk.migration.interfaces.MigrationManagerListener;
 
 public class KinClientSampleApplication extends Application {
@@ -51,7 +49,7 @@ public class KinClientSampleApplication extends Application {
              // TODO: 24/12/2018 handle it after we have production urls
         }
         MigrationManager migrationManager = new MigrationManager(this, appId, migrationNetworkInfo,
-                x -> sdkVersion);
+            () -> sdkVersion);
         try {
             migrationManager.start(new MigrationManagerListener() {
 

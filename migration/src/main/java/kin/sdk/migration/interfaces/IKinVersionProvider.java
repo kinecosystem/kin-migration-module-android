@@ -5,6 +5,6 @@ import kin.sdk.migration.exception.FailedToResolveSdkVersionException;
 
 public interface IKinVersionProvider {
 
-    KinSdkVersion getKinSdkVersion(String appId) throws FailedToResolveSdkVersionException;
+    KinSdkVersion getKinSdkVersion() throws FailedToResolveSdkVersionException;
 
 }

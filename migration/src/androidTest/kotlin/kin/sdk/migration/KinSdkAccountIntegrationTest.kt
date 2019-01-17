@@ -331,7 +331,7 @@ class KinSdkAccountIntegrationTest {
         }
         listenerRegistration.remove()
 
-        kinAccountSender.sendTransactionSync(kinAccountReceiver.publicAddress.orEmpty(), BigDecimal("21.123"),null)
+        kinAccountSender.sendTransactionSync(kinAccountReceiver.publicAddress.orEmpty(), BigDecimal("21.123"), WhitelistServiceForTest())
         latch.await(timeoutDurationSecondsLong, TimeUnit.SECONDS)
     }
 
@@ -372,7 +372,7 @@ class KinSdkAccountIntegrationTest {
     }
 
     private fun addAppIdToMemo(memo: String): String {
-        return appIdVersionPrefix.plus("-").plus(appId).plus("-").plus(memo);
+        return appIdVersionPrefix.plus("-").plus(appId).plus("-").plus(memo)
     }
 
     companion object {
