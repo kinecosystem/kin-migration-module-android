@@ -74,7 +74,7 @@ public class MigrationManager {
     public MigrationManager(@NonNull Context applicationContext, @NonNull String appId,
                             @NonNull MigrationNetworkInfo migrationNetworkInfo,
                             @NonNull IKinVersionProvider kinVersionProvider, @NonNull IMigrationEventsListener eventsListener, @NonNull String storeKey) {
-        this.context = applicationContext;
+        this.context = applicationContext.getApplicationContext();
         this.appId = appId;
         this.migrationNetworkInfo = migrationNetworkInfo;
         this.kinVersionProvider = kinVersionProvider;
@@ -134,36 +134,32 @@ public class MigrationManager {
                 .build();
     }
 
-    private void startMigrationProcess(final MigrationManagerListener migrationManagerListener) {
-        if (isMigrationAlreadyCompleted()) {
-            Log.d(TAG, "startMigrationProcess: migration is already completed in the past");
-            eventsListener.onCallbackReady(KinSdkVersion.NEW_KIN_SDK, SelectedSdkReason.ALREADY_MIGRATED);
-            fireOnReady(migrationManagerListener, initNewKin(), false);
-        } else {
-            try {
-                eventsListener.onVersionCheckStarted();
-                KinSdkVersion kinSdkVersion = kinVersionProvider.getKinSdkVersion(appId);
-                if (kinSdkVersion == null) {
-                    Exception failure = new FailedToResolveSdkVersionException();
+	private void startMigrationProcess(final MigrationManagerListener migrationManagerListener) {
+		if (isMigrationAlreadyCompleted()) {
+			Log.d(TAG, "startMigrationProcess: migration is already completed in the past");
+			eventsListener.onCallbackReady(KinSdkVersion.NEW_KIN_SDK, SelectedSdkReason.ALREADY_MIGRATED);fireOnReady(migrationManagerListener, initNewKin(), false);
+		} else {
+			try {eventsListener.onVersionCheckStarted();
+				KinSdkVersion kinSdkVersion = kinVersionProvider.getKinSdkVersion();
+				if (kinSdkVersion == null) {
+					Exception failure = new FailedToResolveSdkVersionException();
                     eventsListener.onVersionCheckFailed(failure);
                     fireOnError(migrationManagerListener, failure);
-                } else {
-                    if (kinSdkVersion == KinSdkVersion.NEW_KIN_SDK) {
-                        Log.d(TAG, "startMigrationProcess: new sdk.");
-                        eventsListener.onVersionCheckSucceeded(KinSdkVersion.NEW_KIN_SDK);
-                        burnAndMigrateAccount(migrationManagerListener);
-                    } else {
-                        eventsListener.onVersionCheckSucceeded(KinSdkVersion.OLD_KIN_SDK);
-                        eventsListener.onCallbackReady(KinSdkVersion.OLD_KIN_SDK, SelectedSdkReason.API_CHECK);
-                        fireOnReady(migrationManagerListener, initKinCore(), false);
-                    }
-                }
-            } catch (FailedToResolveSdkVersionException e) {
-                eventsListener.onVersionCheckFailed(e);
-                fireOnError(migrationManagerListener, e);
-            }
-        }
-    }
+				} else {
+					if (kinSdkVersion == KinSdkVersion.NEW_KIN_SDK) {
+						Log.d(TAG, "startMigrationProcess: new sdk.");eventsListener.onVersionCheckSucceeded(KinSdkVersion.NEW_KIN_SDK);
+						burnAndMigrateAccount(migrationManagerListener);
+					} else {
+						eventsListener.onVersionCheckSucceeded(KinSdkVersion.OLD_KIN_SDK);
+                        eventsListener.onCallbackReady(KinSdkVersion.OLD_KIN_SDK, SelectedSdkReason.API_CHECK);fireOnReady(migrationManagerListener, initKinCore(), false);
+					}
+				}
+			} catch (FailedToResolveSdkVersionException e) {
+				eventsListener.onVersionCheckFailed( e) ;
+				fireOnError(migrationManagerListener,  e);
+			}
+		}
+	}
 
     private void burnAndMigrateAccount(MigrationManagerListener migrationManagerListener) {
         KinClientCoreImpl kinClientCore = initKinCore();
