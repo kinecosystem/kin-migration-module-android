@@ -7,9 +7,11 @@ import android.support.v7.widget.SwitchCompat;
 import android.view.View;
 import android.widget.TextView;
 
+import kin.sdk.migration.KinSdkVersion;
 import kin.sdk.migration.interfaces.IAccountStatus;
 import kin.sdk.migration.interfaces.IBalance;
 import kin.sdk.migration.interfaces.IKinAccount;
+import kin.sdk.migration.interfaces.IKinVersionProvider;
 import kin.sdk.migration.interfaces.IListenerRegistration;
 import kin.sdk.migration.exception.DeleteAccountException;
 import kin.utils.Request;
@@ -130,8 +132,8 @@ public class WalletActivity extends BaseActivity {
             onboardBtn.setClickable(false);
 
             OnBoarding onBoarding = new OnBoarding();
-            boolean isNewKin = ((KinClientSampleApplication) getApplication()).isKinSdkVersion();
-                    onBoarding.onBoard(isNewKin, account, new OnBoarding.Callbacks() {
+            KinSdkVersion kinSdkVersion = ((KinClientSampleApplication) getApplication()).getKinSdkVersion();
+            onBoarding.onBoard(kinSdkVersion == KinSdkVersion.NEW_KIN_SDK, account, new OnBoarding.Callbacks() {
                 @Override
                 public void onSuccess() {
                     updateAccountInfo(true);
@@ -210,7 +212,9 @@ public class WalletActivity extends BaseActivity {
                 balanceRequest.run(new DisplayCallback<IBalance>(balanceProgress, balance) {
                     @Override
                     public void displayResult(Context context, View view, IBalance result) {
-                        ((TextView) view).setText(result.value().toPlainString());
+                        if (view != null && result != null) {
+                            ((TextView) view).setText(result.value().toPlainString());
+                        }
                     }
                 });
             } else {

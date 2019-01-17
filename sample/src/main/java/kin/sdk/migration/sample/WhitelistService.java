@@ -14,8 +14,7 @@ import kin.sdk.migration.exception.WhitelistTransactionFailedException;
 import kin.sdk.migration.interfaces.IWhitelistableTransaction;
 import kin.sdk.migration.interfaces.IWhitelistService;
 import kin.sdk.migration.interfaces.IWhitelistServiceCallbacks;
-import okhttp3.Call;
-import okhttp3.Callback;
+import kin.sdk.migration.sdk_related.WhitelistResult;
 import okhttp3.MediaType;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
@@ -25,14 +24,15 @@ import okhttp3.ResponseBody;
 
 class WhitelistService implements IWhitelistService {
 
-    private static final String URL_WHITELISTING_SERVICE = "http://18.206.35.110:3000/whitelist";
+    private static final String URL_WHITELISTING_SERVICE = "http://34.239.111.38:3000/whitelist";
     private static final MediaType JSON = MediaType.parse("application/json; charset=utf-8");
 
     private final OkHttpClient okHttpClient;
     private final Handler handler;
     private WhitelistServiceListener whitelistServiceListener;
 
-    WhitelistService() {
+    WhitelistService(WhitelistServiceListener whitelistServiceListener) {
+        this.whitelistServiceListener = whitelistServiceListener;
         handler = new Handler(Looper.getMainLooper());
         okHttpClient = new OkHttpClient.Builder()
                 .connectTimeout(20, TimeUnit.SECONDS)
@@ -41,7 +41,7 @@ class WhitelistService implements IWhitelistService {
     }
 
     @Override
-    public String whitelistTransaction(IWhitelistableTransaction whitelistableTransaction) throws WhitelistTransactionFailedException {
+    public WhitelistResult onWhitelistableTransactionReady(IWhitelistableTransaction whitelistableTransaction) throws WhitelistTransactionFailedException {
         String whitelistTransaction = null;
         RequestBody requestBody;
         try {
@@ -53,7 +53,7 @@ class WhitelistService implements IWhitelistService {
                 .url(URL_WHITELISTING_SERVICE)
                 .post(requestBody)
                 .build();
-        Response response = null;
+        Response response;
         try {
             response = okHttpClient.newCall(request).execute();
             if (response != null) {
@@ -65,11 +65,8 @@ class WhitelistService implements IWhitelistService {
         } catch (IOException e) {
             throw new WhitelistTransactionFailedException(e);
         }
-        return whitelistTransaction;
-    }
 
-    public void setWhitelistServiceListener(WhitelistServiceListener whitelistServiceListener) {
-        this.whitelistServiceListener = whitelistServiceListener;
+        return new WhitelistResult(whitelistTransaction, true);
     }
 
     private void handleResponse(@NonNull Response response, IWhitelistServiceCallbacks callbacks) throws IOException {

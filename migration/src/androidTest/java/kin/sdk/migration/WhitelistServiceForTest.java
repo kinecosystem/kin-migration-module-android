@@ -12,6 +12,7 @@ import kin.sdk.migration.exception.WhitelistTransactionFailedException;
 import kin.sdk.migration.interfaces.IWhitelistService;
 import kin.sdk.migration.interfaces.IWhitelistServiceCallbacks;
 import kin.sdk.migration.interfaces.IWhitelistableTransaction;
+import kin.sdk.migration.sdk_related.WhitelistResult;
 import okhttp3.Call;
 import okhttp3.Callback;
 import okhttp3.MediaType;
@@ -23,7 +24,7 @@ import okhttp3.ResponseBody;
 
 public class WhitelistServiceForTest implements IWhitelistService {
 
-    private static final String URL_WHITELISTING_SERVICE = "http://10.4.59.1:3003/whitelist";
+    private static final String URL_WHITELISTING_SERVICE = "http://34.239.111.38:3000/whitelist";
     private static final MediaType JSON = MediaType.parse("application/json; charset=utf-8");
 
     private final OkHttpClient okHttpClient;
@@ -36,7 +37,7 @@ public class WhitelistServiceForTest implements IWhitelistService {
     }
 
     @Override
-    public String whitelistTransaction(IWhitelistableTransaction whitelistableTransaction) throws WhitelistTransactionFailedException {
+    public WhitelistResult onWhitelistableTransactionReady(IWhitelistableTransaction whitelistableTransaction) throws WhitelistTransactionFailedException {
         String whitelistTransaction = null;
         RequestBody requestBody;
         try {
@@ -60,12 +61,12 @@ public class WhitelistServiceForTest implements IWhitelistService {
         } catch (IOException e) {
             throw new WhitelistTransactionFailedException(e);
         }
-        return whitelistTransaction;
+        return new WhitelistResult(whitelistTransaction, true);
     }
 
     private String toJson(IWhitelistableTransaction whitelistableTransaction) throws JSONException {
         JSONObject jo = new JSONObject();
-        jo.put("envelop", whitelistableTransaction.getTransactionPayload());
+        jo.put("envelope", whitelistableTransaction.getTransactionPayload());
         jo.put("network_id", whitelistableTransaction.getNetworkPassphrase());
         return jo.toString();
     }

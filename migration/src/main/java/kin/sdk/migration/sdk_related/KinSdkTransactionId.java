@@ -8,7 +8,7 @@ public class KinSdkTransactionId implements ITransactionId {
     private final String id;
 
     KinSdkTransactionId(TransactionId transactionId) {
-        this.id = transactionId.id();
+        this.id = transactionId != null ? transactionId.id() : null;
     }
 
     @Override

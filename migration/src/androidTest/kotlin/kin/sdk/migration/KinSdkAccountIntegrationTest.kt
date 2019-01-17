@@ -41,7 +41,7 @@ class KinSdkAccountIntegrationTest {
     @Before
     @Throws(IOException::class)
     fun setup() {
-        kinClient = KinClientSdkImpl(InstrumentationRegistry.getTargetContext(), environment, appId, WhitelistServiceForTest())
+        kinClient = KinClientSdkImpl(InstrumentationRegistry.getTargetContext(), environment, appId)
         kinClient.clearAllAccounts()
     }
 
@@ -129,7 +129,7 @@ class KinSdkAccountIntegrationTest {
         val listenerRegistration = kinAccountReceiver.addPaymentListener { _ -> latch.countDown() }
 
         val transactionId = kinAccountSender.sendTransactionSync(kinAccountReceiver.publicAddress.orEmpty(),
-                BigDecimal("21.123"), memo)
+                BigDecimal("21.123"), WhitelistServiceForTest(), memo)
         assertThat(kinAccountSender.balanceSync.value(), equalTo(BigDecimal("78.87700")))
         assertThat(kinAccountReceiver.balanceSync.value(), equalTo(BigDecimal("21.12300")))
 
@@ -164,7 +164,7 @@ class KinSdkAccountIntegrationTest {
 
         expectedEx.expect(AccountNotFoundException::class.java)
         expectedEx.expectMessage(kinAccountReceiver.publicAddress)
-        kinAccountSender.sendTransactionSync(kinAccountReceiver.publicAddress.orEmpty(), BigDecimal("21.123"))
+        kinAccountSender.sendTransactionSync(kinAccountReceiver.publicAddress.orEmpty(), BigDecimal("21.123"), WhitelistServiceForTest())
 
     }
 
@@ -189,7 +189,7 @@ class KinSdkAccountIntegrationTest {
 
         expectedEx.expect(AccountNotFoundException::class.java)
         expectedEx.expectMessage(kinAccountSender.publicAddress)
-        kinAccountSender.sendTransactionSync(kinAccountReceiver.publicAddress.orEmpty(), BigDecimal("21.123"))
+        kinAccountSender.sendTransactionSync(kinAccountReceiver.publicAddress.orEmpty(), BigDecimal("21.123"), WhitelistServiceForTest())
     }
 
     @Test
@@ -214,7 +214,7 @@ class KinSdkAccountIntegrationTest {
         expectedEx.expect(AccountNotFoundException::class.java)
         expectedEx.expectMessage(kinAccountReceiver.publicAddress)
 
-        kinAccountSender.sendTransactionSync(kinAccountReceiver.publicAddress.orEmpty(), BigDecimal("21.123"))
+        kinAccountSender.sendTransactionSync(kinAccountReceiver.publicAddress.orEmpty(), BigDecimal("21.123"), WhitelistServiceForTest())
 
     }
 
@@ -240,7 +240,7 @@ class KinSdkAccountIntegrationTest {
         expectedEx.expect(AccountNotFoundException::class.java)
         expectedEx.expectMessage(kinAccountSender.publicAddress)
 
-        kinAccountSender.sendTransactionSync(kinAccountReceiver.publicAddress.orEmpty(), BigDecimal("21.123"))
+        kinAccountSender.sendTransactionSync(kinAccountReceiver.publicAddress.orEmpty(), BigDecimal("21.123"), WhitelistServiceForTest())
     }
 
     @Test
@@ -249,7 +249,7 @@ class KinSdkAccountIntegrationTest {
     fun sendWhitelistTransaction_Success() {
         val (kinAccountSender, kinAccountReceiver) = onboardAccounts(senderFundAmount = 100)
 
-        kinAccountSender.sendTransactionSync(kinAccountReceiver.publicAddress.orEmpty(), BigDecimal("20"))
+        kinAccountSender.sendTransactionSync(kinAccountReceiver.publicAddress.orEmpty(), BigDecimal("20"), WhitelistServiceForTest())
         assertThat(kinAccountSender.balanceSync.value(), equalTo(BigDecimal("80.00000")))
         assertThat(kinAccountReceiver.balanceSync.value(), equalTo(BigDecimal("20.00000")))
     }
@@ -298,7 +298,8 @@ class KinSdkAccountIntegrationTest {
         fakeKinSdkOnBoard.fundWithKin(kinAccountSender.publicAddress.orEmpty(), "100")
         val memo = "memo"
         val expectedMemo = addAppIdToMemo(memo)
-        val expectedTransactionId = kinAccountSender.sendTransactionSync(kinAccountReceiver.publicAddress.orEmpty(), transactionAmount, memo)
+        val expectedTransactionId = kinAccountSender.sendTransactionSync(kinAccountReceiver.publicAddress.orEmpty(),
+                transactionAmount, WhitelistServiceForTest(), memo)
 
         //verify data notified by listeners
         val transactionIndex = if (sender) 1 else 0 //in case of observing the sender we'll get 2 events (1 for funding 1 for the
@@ -330,7 +331,7 @@ class KinSdkAccountIntegrationTest {
         }
         listenerRegistration.remove()
 
-        kinAccountSender.sendTransactionSync(kinAccountReceiver.publicAddress.orEmpty(), BigDecimal("21.123"),null)
+        kinAccountSender.sendTransactionSync(kinAccountReceiver.publicAddress.orEmpty(), BigDecimal("21.123"), WhitelistServiceForTest())
         latch.await(timeoutDurationSecondsLong, TimeUnit.SECONDS)
     }
 
@@ -341,7 +342,7 @@ class KinSdkAccountIntegrationTest {
         val (kinAccountSender, kinAccountReceiver) = onboardAccounts()
 
         expectedEx.expect(InsufficientKinException::class.java)
-        kinAccountSender.sendTransactionSync(kinAccountReceiver.publicAddress.orEmpty(), BigDecimal("21.123"))
+        kinAccountSender.sendTransactionSync(kinAccountReceiver.publicAddress.orEmpty(), BigDecimal("21.123"), WhitelistServiceForTest())
     }
 
     private fun onboardAccounts(senderFundAmount: Int = 0,
@@ -371,7 +372,7 @@ class KinSdkAccountIntegrationTest {
     }
 
     private fun addAppIdToMemo(memo: String): String {
-        return appIdVersionPrefix.plus("-").plus(appId).plus("-").plus(memo);
+        return appIdVersionPrefix.plus("-").plus(appId).plus("-").plus(memo)
     }
 
     companion object {

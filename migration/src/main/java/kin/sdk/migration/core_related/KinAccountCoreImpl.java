@@ -11,6 +11,7 @@ import kin.core.KinAccount;
 import kin.core.ListenerRegistration;
 import kin.core.PaymentInfo;
 import kin.core.TransactionId;
+import kin.sdk.migration.KinSdkVersion;
 import kin.sdk.migration.interfaces.IBalance;
 import kin.sdk.migration.interfaces.IEventListener;
 import kin.sdk.migration.interfaces.IKinAccount;
@@ -23,13 +24,19 @@ import kin.sdk.migration.exception.CryptoException;
 import kin.sdk.migration.exception.InsufficientKinException;
 import kin.sdk.migration.exception.OperationFailedException;
 import kin.sdk.migration.exception.TransactionFailedException;
+import kin.sdk.migration.interfaces.IWhitelistService;
 import kin.utils.Request;
 
 public class KinAccountCoreImpl implements IKinAccount {
 
+    private static final String MEMO_APP_ID_VERSION_PREFIX = "1";
+    private static final String MEMO_DELIMITER = "-";
+
+    private final String appId;
     private final KinAccount kinAccount;
 
-    KinAccountCoreImpl(KinAccount kinAccount) {
+    KinAccountCoreImpl(String appId, KinAccount kinAccount) {
+        this.appId = appId;
         this.kinAccount = kinAccount;
     }
 
@@ -42,32 +49,34 @@ public class KinAccountCoreImpl implements IKinAccount {
 
     @NonNull
     @Override
-    public Request<ITransactionId> sendTransaction(@NonNull String publicAddress, @NonNull BigDecimal amount) {
-        return sendTransaction(publicAddress, amount, null);
+    public Request<ITransactionId> sendTransaction(@NonNull String publicAddress, @NonNull BigDecimal amount, IWhitelistService whitelistService) {
+        return sendTransaction(publicAddress, amount, whitelistService, null);
     }
 
     @NonNull
     @Override
-    public Request<ITransactionId> sendTransaction(final @NonNull String publicAddress, final @NonNull BigDecimal amount, final @Nullable String memo) {
+    public Request<ITransactionId> sendTransaction(final @NonNull String publicAddress, final @NonNull BigDecimal amount,
+                                                   final IWhitelistService whitelistService, final @Nullable String memo) {
         return new Request<>(new Callable<ITransactionId>() {
             @Override
             public ITransactionId call() throws Exception {
-                return sendTransactionSync(publicAddress, amount, memo);
+                return sendTransactionSync(publicAddress, amount, whitelistService, memo);
             }
         });
     }
 
     @NonNull
     @Override
-    public ITransactionId sendTransactionSync(@NonNull String publicAddress, @NonNull BigDecimal amount) throws OperationFailedException {
-        return sendTransactionSync(publicAddress, amount, null);
+    public ITransactionId sendTransactionSync(@NonNull String publicAddress, @NonNull BigDecimal amount, IWhitelistService whitelistService) throws OperationFailedException {
+        return sendTransactionSync(publicAddress, amount, whitelistService, null);
     }
 
     @NonNull
     @Override
-    public ITransactionId sendTransactionSync(@NonNull String publicAddress, @NonNull BigDecimal amount, @Nullable String memo) throws OperationFailedException {
+    public ITransactionId sendTransactionSync(@NonNull String publicAddress, @NonNull BigDecimal amount,
+                                              IWhitelistService whitelistService, @Nullable String memo) throws OperationFailedException {
         try {
-            TransactionId transactionId = kinAccount.sendTransactionSync(publicAddress, amount, memo);
+            TransactionId transactionId = kinAccount.sendTransactionSync(publicAddress, amount, addAppIdToMemo(memo, appId));
             return new KinCoreTransactionId(transactionId);
         } catch (kin.core.exception.AccountNotFoundException e) {
             throw new AccountNotFoundException(e.getAccountId());
@@ -77,6 +86,51 @@ public class KinAccountCoreImpl implements IKinAccount {
             throw new InsufficientKinException();
         } catch (kin.core.exception.TransactionFailedException e) {
             throw new TransactionFailedException(e.getTransactionResultCode(), e.getOperationsResultCodes());
+        } catch (kin.core.exception.OperationFailedException e) {
+            throw new OperationFailedException(e.getMessage(), e.getCause());
+        }
+    }
+
+    private String addAppIdToMemo(@Nullable String memo, @NonNull String appId) {
+        if (memo == null) {
+            memo = "";
+        } else {
+            memo = memo.trim(); // remove leading and trailing whitespaces.
+        }
+        StringBuilder sb = new StringBuilder();
+        sb.append(MEMO_APP_ID_VERSION_PREFIX)
+                .append(MEMO_DELIMITER)
+                .append(appId)
+                .append(MEMO_DELIMITER)
+                .append(memo);
+        memo = sb.toString();
+        return memo;
+    }
+
+    @NonNull
+    public ITransactionId sendBurnTransactionSync(@NonNull String publicAddress) throws OperationFailedException {
+        try {
+            TransactionId transactionId = kinAccount.sendBurnAccountTransactionSync(publicAddress);
+            return new KinCoreTransactionId(transactionId);
+        } catch (kin.core.exception.AccountNotFoundException e) {
+            throw new AccountNotFoundException(e.getAccountId());
+        } catch (kin.core.exception.AccountNotActivatedException e) {
+            throw new AccountNotActivatedException(e.getAccountId());
+        } catch (kin.core.exception.TransactionFailedException e) {
+            throw new TransactionFailedException(e.getTransactionResultCode(), e.getOperationsResultCodes());
+        } catch (kin.core.exception.OperationFailedException e) {
+            throw new OperationFailedException(e.getMessage(), e.getCause());
+        }
+    }
+
+    @NonNull
+    public boolean isAccountBurned() throws OperationFailedException {
+        try {
+            return kinAccount.isAccountBurnedSync();
+        } catch (kin.core.exception.AccountNotFoundException e) {
+            throw new AccountNotFoundException(e.getAccountId());
+        } catch (kin.core.exception.AccountNotActivatedException e) {
+            throw new AccountNotActivatedException(e.getAccountId());
         } catch (kin.core.exception.OperationFailedException e) {
             throw new OperationFailedException(e.getMessage(), e.getCause());
         }
@@ -190,6 +244,11 @@ public class KinAccountCoreImpl implements IKinAccount {
             }
         });
         return new KinCoreListenerRegistration(listenerRegistration);
+    }
+
+    @Override
+    public KinSdkVersion getKinSdkVersion() {
+        return KinSdkVersion.OLD_KIN_SDK;
     }
 
 }

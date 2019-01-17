@@ -17,13 +17,15 @@ import kin.sdk.migration.exception.DeleteAccountException;
 public class KinClientCoreImpl implements IKinClient {
 
     private final KinCoreEnvironment kinCoreEnvironment;
-    private KinClient kinClient;
+    private final String appId;
+    private final KinClient kinClient;
 
-    public KinClientCoreImpl(Context context, ServiceProvider serviceProvider) {
-        this(context, serviceProvider, "");
+    public KinClientCoreImpl(Context context, ServiceProvider serviceProvider, String appId) {
+        this(context, serviceProvider, appId, "");
     }
 
-    public KinClientCoreImpl(Context context, ServiceProvider serviceProvider, String storeKey) {
+    public KinClientCoreImpl(Context context, ServiceProvider serviceProvider, String appId, String storeKey) {
+        this.appId = appId;
         kinCoreEnvironment = new KinCoreEnvironment(serviceProvider);
         kinClient = new KinClient(context, serviceProvider, storeKey);
     }
@@ -38,7 +40,7 @@ public class KinClientCoreImpl implements IKinClient {
     public IKinAccount addAccount() throws CreateAccountException {
         try {
             KinAccount kinCoreAccount = kinClient.addAccount();
-            return new KinAccountCoreImpl(kinCoreAccount);
+            return new KinAccountCoreImpl(appId, kinCoreAccount);
         } catch (kin.core.exception.CreateAccountException e) {
             throw new CreateAccountException( e.getCause());
         }
@@ -47,7 +49,7 @@ public class KinClientCoreImpl implements IKinClient {
     @Override
     public IKinAccount getAccount(int index) {
         KinAccount kinCoreAccount = kinClient.getAccount(index);
-        return new KinAccountCoreImpl(kinCoreAccount);
+        return new KinAccountCoreImpl(appId, kinCoreAccount);
     }
 
     @Override
@@ -80,7 +82,7 @@ public class KinClientCoreImpl implements IKinClient {
         throws CryptoException, CreateAccountException, CorruptedDataException {
         try {
             KinAccount kinAccount = kinClient.importAccount(exportedJson, passphrase);
-            return new KinAccountCoreImpl(kinAccount);
+            return new KinAccountCoreImpl(appId, kinAccount);
         } catch (kin.core.exception.CryptoException e) {
             throw new CryptoException(e.getMessage(), e.getCause());
         } catch (kin.core.exception.CreateAccountException e) {

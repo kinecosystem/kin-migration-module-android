@@ -2,6 +2,7 @@ package kin.sdk.migration.sdk_related;
 
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
+
 import java.math.BigDecimal;
 import java.util.concurrent.Callable;
 
@@ -12,6 +13,7 @@ import kin.sdk.ListenerRegistration;
 import kin.sdk.PaymentInfo;
 import kin.sdk.Transaction;
 import kin.sdk.TransactionId;
+import kin.sdk.migration.KinSdkVersion;
 import kin.sdk.migration.exception.InsufficientKinException;
 import kin.sdk.migration.exception.TransactionFailedException;
 import kin.sdk.migration.interfaces.IBalance;
@@ -29,11 +31,9 @@ import kin.utils.Request;
 public class KinAccountSdkImpl implements IKinAccount {
 
     private final KinAccount kinAccount;
-    private final IWhitelistService whitelistService;
 
-    KinAccountSdkImpl(KinAccount kinAccount, IWhitelistService whitelistService) {
+    KinAccountSdkImpl(KinAccount kinAccount) {
         this.kinAccount = kinAccount;
-        this.whitelistService = whitelistService;
     }
 
     @Nullable
@@ -44,42 +44,48 @@ public class KinAccountSdkImpl implements IKinAccount {
 
     @NonNull
     @Override
-    public Request<ITransactionId> sendTransaction(@NonNull String publicAddress, @NonNull BigDecimal amount) {
-        return sendTransaction(publicAddress, amount, null);
+    public Request<ITransactionId> sendTransaction(@NonNull String publicAddress,
+                                                   @NonNull BigDecimal amount, @NonNull IWhitelistService whitelistService) {
+        return sendTransaction(publicAddress, amount, whitelistService, null);
     }
 
     @NonNull
     @Override
-    public Request<ITransactionId> sendTransaction(final @NonNull String publicAddress,
-            final @NonNull BigDecimal amount, final @Nullable String memo) {
+    public Request<ITransactionId> sendTransaction(final @NonNull String publicAddress, final @NonNull BigDecimal amount,
+                                                   final @NonNull IWhitelistService whitelistService, final @Nullable String memo) {
         return new Request<>(new Callable<ITransactionId>() {
             @Override
             public ITransactionId call() throws Exception {
-                return sendTransactionSync(publicAddress, amount, memo);
+                return sendTransactionSync(publicAddress, amount, whitelistService, memo);
             }
         });
     }
 
     @NonNull
     @Override
-    public ITransactionId sendTransactionSync(@NonNull String publicAddress, @NonNull BigDecimal amount) throws OperationFailedException {
-        return sendTransactionSync(publicAddress, amount, null);
+    public ITransactionId sendTransactionSync(@NonNull String publicAddress, @NonNull BigDecimal amount,
+                                              @NonNull IWhitelistService whitelistService) throws OperationFailedException {
+        return sendTransactionSync(publicAddress, amount, whitelistService, null);
     }
 
     @NonNull
     @Override
-    public ITransactionId sendTransactionSync(@NonNull String publicAddress, @NonNull BigDecimal amount, @Nullable String memo) throws OperationFailedException {
+    public ITransactionId sendTransactionSync(@NonNull String publicAddress, @NonNull BigDecimal amount,
+                                              @NonNull IWhitelistService whitelistService, @Nullable String memo) throws OperationFailedException {
         try {
             Transaction transaction = kinAccount.buildTransactionSync(publicAddress, amount, 0, memo);
             if (whitelistService != null) {
-                String whitelistTransaction = whitelistService.whitelistTransaction(new KinSdkTransaction(transaction).getWhitelistableTransaction());
-                TransactionId transactionId = kinAccount.sendWhitelistTransactionSync(whitelistTransaction);
+                TransactionId transactionId = null;
+                WhitelistResult whitelistTransactionResult = whitelistService.onWhitelistableTransactionReady(new KinSdkTransaction(transaction).getWhitelistableTransaction());
+                if (whitelistTransactionResult.shouldSendTransaction()) {
+                    transactionId = kinAccount.sendWhitelistTransactionSync(whitelistTransactionResult.getWhitelistedTransaction());
+                }
                 return new KinSdkTransactionId(transactionId);
             } else {
                 throw new IllegalArgumentException("whitelist service listener is null");
             }
         } catch (kin.sdk.exception.AccountNotFoundException e) {
-                throw new AccountNotFoundException(e.getAccountId());
+            throw new AccountNotFoundException(e.getAccountId());
         } catch (kin.sdk.exception.InsufficientKinException e) {
             throw new InsufficientKinException();
         } catch (kin.sdk.exception.TransactionFailedException e) {
@@ -117,7 +123,7 @@ public class KinAccountSdkImpl implements IKinAccount {
     @NonNull
     @Override
     public Request<Void> activate() {
-        return new Request<>( null);
+        return new Request<>(null);
     }
 
     @Override
@@ -184,6 +190,11 @@ public class KinAccountSdkImpl implements IKinAccount {
             }
         });
         return new KinSdkListenerRegistration(listenerRegistration);
+    }
+
+    @Override
+    public KinSdkVersion getKinSdkVersion() {
+        return KinSdkVersion.NEW_KIN_SDK;
     }
 
 }

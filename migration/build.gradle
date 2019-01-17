@@ -39,7 +39,7 @@ dependencies {
     implementation supportDependencies.supportAnnotations
 
     implementation 'com.github.kinecosystem:kin-sdk-android:3b3f0c0dfe'
-    implementation 'com.github.kinecosystem:kin-core-android:9a49d6d5c7'
+    implementation 'com.github.kinecosystem:kin-core-android:7713fe0c94'
     api 'com.github.kinecosystem:kin-utils-android:1.1'
 
     testImplementation testingDependencies.junit
@@ -54,9 +54,6 @@ dependencies {
     androidTestImplementation testingDependencies.multidex
     androidTestImplementation testingDependencies.kotlin
     androidTestImplementation testingDependencies.kotlinJUnitTest
-
-
-
 }
 
 //bundle javadocs with published aar
