@@ -6,9 +6,8 @@ import android.graphics.Paint;
 import android.os.Bundle;
 import android.text.Html;
 import android.widget.TextView;
-
 import kin.sdk.migration.interfaces.IKinClient;
-import kin.sdk.migration.interfaces.MigrationManagerListener;
+import kin.sdk.migration.interfaces.IMigrationManagerCallbacks;
 
 /**
  * User is given a choice to create or use an account on the MAIN or TEST(test) networks
@@ -53,7 +52,7 @@ public class ChooseNetworkActivity extends BaseActivity {
 
     private void createKinClient(KinClientSampleApplication.NetWorkType netWorkType) {
         KinClientSampleApplication application = (KinClientSampleApplication) getApplication();
-        application.createKinClient(netWorkType, "test", new MigrationManagerListener() {
+        application.createKinClient(netWorkType, "test", new IMigrationManagerCallbacks() {
 
             @Override
             public void onMigrationStart() {

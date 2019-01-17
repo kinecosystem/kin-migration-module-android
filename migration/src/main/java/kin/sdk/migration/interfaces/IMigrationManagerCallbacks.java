@@ -1,6 +1,6 @@
 package kin.sdk.migration.interfaces;
 
-public interface MigrationManagerListener {
+public interface IMigrationManagerCallbacks {
 
     /**
      * Method is invoked before the migration process itself will start.
