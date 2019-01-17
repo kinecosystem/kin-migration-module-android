@@ -8,7 +8,7 @@ import kin.sdk.migration.MigrationManager;
 import kin.sdk.migration.MigrationNetworkInfo;
 import kin.sdk.migration.exception.MigrationInProcessException;
 import kin.sdk.migration.interfaces.IKinClient;
-import kin.sdk.migration.interfaces.MigrationManagerListener;
+import kin.sdk.migration.interfaces.IMigrationManagerCallbacks;
 
 public class KinClientSampleApplication extends Application {
 
@@ -38,7 +38,7 @@ public class KinClientSampleApplication extends Application {
                 .build());
     }
 
-    public void createKinClient(NetWorkType type, String appId, MigrationManagerListener migrationManagerListener) {
+    public void createKinClient(NetWorkType type, String appId, IMigrationManagerCallbacks migrationManagerCallbacks) {
         MigrationNetworkInfo migrationNetworkInfo = new MigrationNetworkInfo(CORE_TEST_NETWORK_URL, CORE_TEST_NETWORK_ID,
                                                         SDK_TEST_NETWORK_URL, SDK_TEST_NETWORK_ID, CORE_ISSUER);
         if (type == NetWorkType.SDK_TEST) {
@@ -49,28 +49,28 @@ public class KinClientSampleApplication extends Application {
              // TODO: 24/12/2018 handle it after we have production urls
         }
         MigrationManager migrationManager = new MigrationManager(this, appId, migrationNetworkInfo,
-            () -> sdkVersion);
+            () -> sdkVersion, new SampleMigrationEventsListener());
         try {
-            migrationManager.start(new MigrationManagerListener() {
+            migrationManager.start(new IMigrationManagerCallbacks() {
 
                 @Override
                 public void onMigrationStart() {
-                    migrationManagerListener.onMigrationStart();
+                    migrationManagerCallbacks.onMigrationStart();
                 }
 
                 @Override
                 public void onReady(IKinClient kinClient) {
                     KinClientSampleApplication.this.kinClient = kinClient;
-                    migrationManagerListener.onReady(kinClient);
+                    migrationManagerCallbacks.onReady(kinClient);
                 }
 
                 @Override
                 public void onError(Exception e) {
-                    migrationManagerListener.onError(e);
+                    migrationManagerCallbacks.onError(e);
                 }
             });
         } catch (MigrationInProcessException e) {
-           migrationManagerListener.onError(e);
+            migrationManagerCallbacks.onError(e);
         }
     }
 

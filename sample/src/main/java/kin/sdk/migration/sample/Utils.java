@@ -27,6 +27,6 @@ public class Utils {
         StringWriter sw = new StringWriter();
         PrintWriter pw = new PrintWriter(sw);
         t.printStackTrace(pw);
-        Log.e("KinSampleApp", operationName + "error = " + sw.toString());
+        Log.e("KinSampleApp", operationName + "\nerror = " + sw.toString());
     }
 }
