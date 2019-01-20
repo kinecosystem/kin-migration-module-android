@@ -208,7 +208,7 @@ public class MigrationManager {
 	 * Start the burn account process which checks if the account was already burned and if not then burned it.
 	 *
 	 * @param account is the kin account.
-	 * @return boolean indicates whether migration is needed
+	 * @return the reason.
 	 */
 	@NonNull
 	private BurnReason startBurnAccountProcess(final String publicAddress, final KinAccountCoreImpl account)
