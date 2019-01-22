@@ -152,8 +152,7 @@ public class MigrationManager {
 					} else {
 						eventsListener.onVersionCheckSucceeded(KinSdkVersion.OLD_KIN_SDK);
 						eventsListener.onCallbackReady(KinSdkVersion.OLD_KIN_SDK, SelectedSdkReason.API_CHECK);
-						fireOnReady(
-							migrationManagerCallbacks, initKinCore(), false);
+						fireOnReady(migrationManagerCallbacks, initKinCore(), false);
 					}
 				}
 			} catch (FailedToResolveSdkVersionException e) {

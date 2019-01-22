@@ -56,6 +56,18 @@ constructor() {
         }
         assertTrue(response.isSuccess)
     }
+
+    @Throws(Exception::class)
+    fun fundWithKin(url: String) {
+        val client = OkHttpClient()
+        val request = okhttp3.Request.Builder()
+                .url(url).build()
+        client.newCall(request).execute()?.let {
+            if (it.body() == null || it.code() != 200) {
+                Log.d("test", "fundWithKin error, error code = ${it.code()}, message = ${it.message()}")
+            }
+        }
+    }
 }
 
 private val TIMEOUT_SEC = 20
