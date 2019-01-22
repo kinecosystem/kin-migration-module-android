@@ -3,6 +3,7 @@ package kin.sdk.migration.sample;
 import android.app.Application;
 import android.os.StrictMode;
 import android.os.StrictMode.VmPolicy;
+
 import kin.sdk.migration.KinSdkVersion;
 import kin.sdk.migration.MigrationManager;
 import kin.sdk.migration.MigrationNetworkInfo;
@@ -40,16 +41,17 @@ public class KinClientSampleApplication extends Application {
 
     public void createKinClient(NetWorkType type, String appId, IMigrationManagerCallbacks migrationManagerCallbacks) {
         MigrationNetworkInfo migrationNetworkInfo = new MigrationNetworkInfo(CORE_TEST_NETWORK_URL, CORE_TEST_NETWORK_ID,
-                                                        SDK_TEST_NETWORK_URL, SDK_TEST_NETWORK_ID, CORE_ISSUER);
+                SDK_TEST_NETWORK_URL, SDK_TEST_NETWORK_ID, CORE_ISSUER);
         if (type == NetWorkType.SDK_TEST) {
             sdkVersion = KinSdkVersion.NEW_KIN_SDK;
         } else if (type == NetWorkType.CORE_TEST) {
             sdkVersion = KinSdkVersion.OLD_KIN_SDK;
         } else {
-             // TODO: 24/12/2018 handle it after we have production urls
+            // TODO: 24/12/2018 handle it after we have production urls
         }
         MigrationManager migrationManager = new MigrationManager(this, appId, migrationNetworkInfo,
-            () -> sdkVersion, new SampleMigrationEventsListener());
+                () -> sdkVersion, new SampleMigrationEventsListener());
+        migrationManager.enableLogs(true);
         try {
             migrationManager.start(new IMigrationManagerCallbacks() {
 
