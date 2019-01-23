@@ -14,6 +14,7 @@ import kin.sdk.migration.interfaces.*
 import org.hamcrest.MatcherAssert.assertThat
 import org.hamcrest.Matchers
 import org.hamcrest.Matchers.instanceOf
+import org.hamcrest.Matchers.nullValue
 import org.junit.*
 import org.junit.rules.ExpectedException
 import org.mockito.Mock
@@ -140,15 +141,13 @@ class MigrationManagerIntegrationTest {
 
         val latch = CountDownLatch(1)
         val kinClient = getKinClientOnOldKinBlockchain()
-        var migrationStarted = false
         createAccountActivateAndMigrate(kinClient, object : IMigrationManagerCallbacks {
 
             override fun onMigrationStart() {
-                migrationStarted = true
+                migrationDidStart.set(true)
             }
 
             override fun onReady(kinClient: IKinClient) {
-                migrationDidStart.set(migrationStarted)
                 isNewSdk.set(kinClient.getAccount(kinClient.accountCount - 1).kinSdkVersion == KinSdkVersion.NEW_KIN_SDK)
                 isAccountAlreadyMigrated.set(isAccountAlreadyMigrated())
                 latch.countDown()
@@ -218,7 +217,7 @@ class MigrationManagerIntegrationTest {
             }
 
             override fun onError(e: java.lang.Exception) {
-                error = MigrationManagerIntegrationTest.Error(e)
+                error = Error(e)
                 assertTrue(e is FailedToResolveSdkVersionException)
                 latch.countDown()
             }
@@ -233,29 +232,32 @@ class MigrationManagerIntegrationTest {
     @Test
     @LargeTest
     fun start_AlreadyMigratedButNotSavedLocally_ZeroBalance_AccountNotActivated_getNewKinClient() {
-        //TODO keep testings from here
+        val migrationDidStart = AtomicBoolean()
+        val isNewSdk = AtomicBoolean()
+        var error: Error? = null
         val latch = CountDownLatch(1)
         getNewKinClientAfterMigration()// blocking call
         teardown()
         val migrationManager = getNewMigrationManager(IKinVersionProvider { KinSdkVersion.NEW_KIN_SDK })
-        var migrationStarted = false
         migrationManager.start(object : IMigrationManagerCallbacks {
             override fun onMigrationStart() {
-                migrationStarted = true
+                migrationDidStart.set(true)
             }
 
             override fun onReady(kinClient: IKinClient) {
-                assertTrue(migrationStarted)
-                assertEquals(kinClient.getAccount(kinClient.accountCount - 1).getKinSdkVersion(), KinSdkVersion.NEW_KIN_SDK)
+                isNewSdk.set(kinClient.getAccount(kinClient.accountCount - 1).kinSdkVersion == KinSdkVersion.NEW_KIN_SDK)
                 latch.countDown()
             }
 
             override fun onError(e: java.lang.Exception) {
-                fail("not supposed to reach onError with this exception: $e")
+                error = Error(e)
             }
 
         })
         assertTrue(latch.await(timeoutDurationSecondsLong, TimeUnit.SECONDS))
+        assertTrue(migrationDidStart.get())
+        assertTrue(isNewSdk.get())
+        assertThat(error?.exception, Matchers.nullValue())
     }
 
     @Test
@@ -326,12 +328,14 @@ class MigrationManagerIntegrationTest {
         //TODO need to implement after we check how to fund the account with the current issuer and the random issuer because then migration could not succeed
     }
 
+    // TODO check also in some test the we are getting a old client in on ready
     //TODO should we test all kind of scenarios like it was burned but then network or something fail and he didn't migrate
     //TODO and then in a different time he tries again?
     //TODO maybe test also if account is burned and migrated or burned but not migrated
 
     private fun getNewKinClientAfterMigration(): IKinClient? {
         val migrationDidStart = AtomicBoolean()
+        var error : Error? = null
         val latch = CountDownLatch(1)
         var migratedKinClient: IKinClient? = null
         val kinClient = getKinClientOnOldKinBlockchain()
@@ -349,12 +353,14 @@ class MigrationManagerIntegrationTest {
             }
 
             override fun onError(e: Exception) {
-                fail("not supposed to reach onError with this exception: $e")
+                error = MigrationManagerIntegrationTest.Error(e)
             }
 
         })
         assertTrue(latch.await(timeoutDurationSecondsLong, TimeUnit.SECONDS))
         assertTrue(migrationDidStart.get())
+        assertThat(error?.exception, Matchers.nullValue())
+
         return migratedKinClient
     }
 
