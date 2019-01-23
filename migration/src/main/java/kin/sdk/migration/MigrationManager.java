@@ -5,18 +5,13 @@ import android.content.SharedPreferences;
 import android.os.Handler;
 import android.os.Looper;
 import android.support.annotation.NonNull;
-
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
-
-import org.stellar.sdk.responses.HttpResponseException;
-
 import java.io.IOException;
 import java.lang.reflect.Type;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
-
 import kin.core.ServiceProvider;
 import kin.sdk.Environment;
 import kin.sdk.Logger;
@@ -44,6 +39,7 @@ import okhttp3.Request;
 import okhttp3.RequestBody;
 import okhttp3.Response;
 import okhttp3.ResponseBody;
+import org.stellar.sdk.responses.HttpResponseException;
 
 public class MigrationManager {
 
@@ -52,7 +48,6 @@ public class MigrationManager {
     static final String KIN_MIGRATION_COMPLETED_KEY = "migration_completed_key";
     private static final int TIMEOUT = 30;
     private static final int MAX_RETRIES = 3;
-    private static final String URL_MIGRATE_ACCOUNT_SERVICE = "https://migration-devplatform-playground.developers.kinecosystem.com/migrate?address=";
 
     private final Context context;
     private final String appId;
@@ -322,7 +317,7 @@ public class MigrationManager {
                                  final IMigrationManagerCallbacks migrationManagerCallbacks) {
         eventsNotifier.onRequestAccountMigrationStarted(publicAddress);
         try {
-            Response response = sendRequest(URL_MIGRATE_ACCOUNT_SERVICE + publicAddress);
+            Response response = sendRequest(migrationNetworkInfo.getMigrationServiceUrl() + publicAddress);
             if (response.isSuccessful()) {
                 eventsNotifier
                         .onRequestAccountMigrationSucceeded(publicAddress, RequestAccountMigrationSuccessReason.MIGRATED);
