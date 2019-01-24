@@ -17,6 +17,9 @@ public class KinClientSampleApplication extends Application {
     private static final String CORE_TEST_NETWORK_URL = "https://horizon-playground.kininfrastructure.com/";
     private static final String CORE_TEST_NETWORK_ID = "Kin Playground Network ; June 2018";
     private static final String CORE_ISSUER = "GBC3SG6NGTSZ2OMH3FFGB7UVRQWILW367U4GSOOF4TFSZONV42UJXUH7";
+    private static final String MIGRATE_ACCOUNT_SERVICE_TEST_URL = "https://migration-devplatform-playground.developers.kinecosystem.com/migrate?address=";
+    private static final String MIGRATE_ACCOUNT_SERVICE_PRODUCTION_URL = "https://migration-devplatform-production.developers.kinecosystem.com/migrate?address=";
+
 
     private IKinClient kinClient;
     private KinSdkVersion sdkVersion;
@@ -40,16 +43,17 @@ public class KinClientSampleApplication extends Application {
 
     public void createKinClient(NetWorkType type, String appId, IMigrationManagerCallbacks migrationManagerCallbacks) {
         MigrationNetworkInfo migrationNetworkInfo = new MigrationNetworkInfo(CORE_TEST_NETWORK_URL, CORE_TEST_NETWORK_ID,
-                                                        SDK_TEST_NETWORK_URL, SDK_TEST_NETWORK_ID, CORE_ISSUER);
+            SDK_TEST_NETWORK_URL, SDK_TEST_NETWORK_ID, CORE_ISSUER, MIGRATE_ACCOUNT_SERVICE_TEST_URL);
         if (type == NetWorkType.SDK_TEST) {
             sdkVersion = KinSdkVersion.NEW_KIN_SDK;
         } else if (type == NetWorkType.CORE_TEST) {
             sdkVersion = KinSdkVersion.OLD_KIN_SDK;
         } else {
-             // TODO: 24/12/2018 handle it after we have production urls
+            // TODO: 24/12/2018 handle it after later
         }
         MigrationManager migrationManager = new MigrationManager(this, appId, migrationNetworkInfo,
-            () -> sdkVersion, new SampleMigrationEventsListener());
+                () -> sdkVersion, new SampleMigrationEventsListener());
+        migrationManager.enableLogs(true);
         try {
             migrationManager.start(new IMigrationManagerCallbacks() {
 
