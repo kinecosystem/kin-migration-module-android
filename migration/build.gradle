@@ -38,7 +38,7 @@ dependencies {
     implementation fileTree(dir: 'libs', include: '*.jar')
     implementation supportDependencies.supportAnnotations
 
-    implementation 'com.github.kinecosystem:kin-sdk-android:1.0.3'
+    implementation 'com.github.kinecosystem:kin-sdk-android:1.0.2'
     implementation 'com.github.kinecosystem:kin-core-android:0.1.7'
     api 'com.github.kinecosystem:kin-utils-android:1.1'
 
