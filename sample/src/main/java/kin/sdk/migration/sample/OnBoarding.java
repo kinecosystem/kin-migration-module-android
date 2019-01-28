@@ -3,11 +3,9 @@ package kin.sdk.migration.sample;
 import android.os.Handler;
 import android.os.Looper;
 import android.support.annotation.NonNull;
-
 import java.io.IOException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
-
 import kin.sdk.migration.interfaces.IKinAccount;
 import kin.sdk.migration.interfaces.IListenerRegistration;
 import kin.utils.ResultCallback;
@@ -20,11 +18,13 @@ import okhttp3.Response;
 class OnBoarding {
 
     private static final int FUND_KIN_AMOUNT = 10;
-    private static final String TEST_SDK_URL_CREATE_ACCOUNT = "http://friendbot-testnet.kininfrastructure.com?addr=%s&amount=" + String.valueOf(FUND_KIN_AMOUNT);
-    private static final String TEST_CORE_URL_CREATE_ACCOUNT = "http://friendbot-playground.kininfrastructure.com/?addr=";
-    private static final String TEST_SDK_URL_FUND = "http://friendbot-testnet.kininfrastructure.com/fund?addr=%s&amount=" + String.valueOf(FUND_KIN_AMOUNT);
+    private static final String TEST_SDK_URL_CREATE_ACCOUNT =
+        "https://friendbot-testnet.kininfrastructure.com?addr=%s&amount=" + String.valueOf(FUND_KIN_AMOUNT);
+    private static final String TEST_CORE_URL_CREATE_ACCOUNT = "https://friendbot-playground.kininfrastructure.com/?addr=";
+    private static final String TEST_SDK_URL_FUND =
+        "https://friendbot-testnet.kininfrastructure.com/fund?addr=%s&amount=" + String.valueOf(FUND_KIN_AMOUNT);
     private static final String TEST_CORE_URL_FUND =
-        "http://faucet-playground.kininfrastructure.com/fund?account=%s&amount=" + String.valueOf(FUND_KIN_AMOUNT);
+        "https://faucet-playground.kininfrastructure.com/fund?account=%s&amount=" + String.valueOf(FUND_KIN_AMOUNT);
     private final OkHttpClient okHttpClient;
     private final Handler handler;
     private IListenerRegistration listenerRegistration;
