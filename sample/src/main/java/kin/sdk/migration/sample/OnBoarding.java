@@ -24,7 +24,7 @@ class OnBoarding {
     private static final String TEST_SDK_URL_FUND =
         "https://friendbot-testnet.kininfrastructure.com/fund?addr=%s&amount=" + String.valueOf(FUND_KIN_AMOUNT);
     private static final String TEST_CORE_URL_FUND =
-        "https://faucet-playground.kininfrastructure.com/fund?account=%s&amount=" + String.valueOf(FUND_KIN_AMOUNT);
+        "http://faucet-playground.kininfrastructure.com/fund?account=%s&amount=" + String.valueOf(FUND_KIN_AMOUNT);
     private final OkHttpClient okHttpClient;
     private final Handler handler;
     private IListenerRegistration listenerRegistration;

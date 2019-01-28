@@ -31,7 +31,7 @@ class MigrationManagerIntegrationTest {
     private val coreTestNetworkUrl = "https://horizon-playground.kininfrastructure.com/"
     private val coreTestNetworkId = "Kin Playground Network ; June 2018"
     private val coreIssuer = "GBC3SG6NGTSZ2OMH3FFGB7UVRQWILW367U4GSOOF4TFSZONV42UJXUH7"
-    private val migrateServiceUrl = "https://migration-devplatform-production.developers.kinecosystem.com/migrate?address="
+    private val migrateServiceUrl = "https://migration-devplatform-playground.developers.kinecosystem.com/migrate?address="
 
 
     private val timeoutDurationSecondsLong: Long = 50 //TODO need to change to a normal number, maybe 15 seconds
