@@ -26,11 +26,13 @@ import kotlin.test.fail
 @Suppress("FunctionName")
 class MigrationManagerIntegrationTest {
 
-    private val sdkTestNetworkUrl = "http://horizon-testnet.kininfrastructure.com/"
+    private val sdkTestNetworkUrl = "https://horizon-testnet.kininfrastructure.com/"
     private val sdkTestNetworkId = "Kin Testnet ; December 2018"
     private val coreTestNetworkUrl = "https://horizon-playground.kininfrastructure.com/"
     private val coreTestNetworkId = "Kin Playground Network ; June 2018"
     private val coreIssuer = "GBC3SG6NGTSZ2OMH3FFGB7UVRQWILW367U4GSOOF4TFSZONV42UJXUH7"
+    private val migrateServiceUrl = "https://migration-devplatform-playground.developers.kinecosystem.com/migrate?address="
+
 
     private val timeoutDurationSecondsLong: Long = 50 //TODO need to change to a normal number, maybe 15 seconds
     private val timeoutDurationSecondsShort: Long = 10 //TODO need to change to a normal number, maybe 5 seconds
@@ -38,7 +40,7 @@ class MigrationManagerIntegrationTest {
     private lateinit var migrationManagerOldKin: MigrationManager
     private lateinit var migrationManagerNewKin: MigrationManager
     private val networkInfo = MigrationNetworkInfo(coreTestNetworkUrl, coreTestNetworkId, sdkTestNetworkUrl,
-            sdkTestNetworkId, coreIssuer)
+            sdkTestNetworkId, coreIssuer, migrateServiceUrl)
 
     @Mock
     lateinit var eventListener: IMigrationEventsListener
