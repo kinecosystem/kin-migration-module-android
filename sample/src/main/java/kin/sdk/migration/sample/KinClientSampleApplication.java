@@ -12,7 +12,7 @@ import kin.sdk.migration.interfaces.IMigrationManagerCallbacks;
 
 public class KinClientSampleApplication extends Application {
 
-    private static final String SDK_TEST_NETWORK_URL = "http://horizon-testnet.kininfrastructure.com/";
+    private static final String SDK_TEST_NETWORK_URL = "https://horizon-testnet.kininfrastructure.com/";
     private static final String SDK_TEST_NETWORK_ID = "Kin Testnet ; December 2018";
     private static final String CORE_TEST_NETWORK_URL = "https://horizon-playground.kininfrastructure.com/";
     private static final String CORE_TEST_NETWORK_ID = "Kin Playground Network ; June 2018";
