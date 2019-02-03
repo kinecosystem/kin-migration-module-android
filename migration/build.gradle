@@ -46,6 +46,8 @@ dependencies {
     testImplementation testingDependencies.mockito
     testImplementation testingDependencies.mockWebServer
     testImplementation testingDependencies.robolectric
+    testImplementation testingDependencies.kotlin
+    testImplementation testingDependencies.kotlinJUnitTest
 
     androidTestImplementation testingDependencies.mockitoAndroid
     androidTestImplementation testingDependencies.androidTestRunner
