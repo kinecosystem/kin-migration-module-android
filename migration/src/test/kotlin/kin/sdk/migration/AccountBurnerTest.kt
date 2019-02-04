@@ -34,11 +34,6 @@ class AccountBurnerTest {
     }
 
     @Test
-    fun getCurrentKinClient() {
-
-    }
-
-    @Test
     fun startBurnAccountProcess_accountNotYetBurned_success() {
         // Given
         `when`(kinAccount.isAccountBurned).thenReturn(false)
@@ -50,6 +45,7 @@ class AccountBurnerTest {
         val burnReason = accountBurner.startBurnAccountProcess(kinAccount)
 
         // Then
+        verify(kinAccount, times(1)).sendBurnTransactionSync(ArgumentMatchers.anyString())
         assertThat(burnReason, equalTo(IMigrationEventsListener.BurnReason.BURNED))
     }
 
@@ -67,5 +63,6 @@ class AccountBurnerTest {
         verify(kinAccount, times(0)).sendBurnTransactionSync(ArgumentMatchers.anyString())
         assertThat(burnReason, equalTo(IMigrationEventsListener.BurnReason.ALREADY_BURNED))
     }
+
 
 }
