@@ -481,7 +481,6 @@ class MigrationManagerIntegrationTest {
         assertTrue(!migrationDidStart.get())
         assertTrue(isOldSdk.get())
         assertThat(error?.exception, Matchers.nullValue())
-        0
         return oldKinClient
     }
 
