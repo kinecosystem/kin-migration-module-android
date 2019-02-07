@@ -10,14 +10,14 @@ import kin.sdk.migration.MigrationManager.KIN_MIGRATION_COMPLETED_KEY
 import kin.sdk.migration.MigrationManager.KIN_MIGRATION_MODULE_PREFERENCE_FILE_KEY
 import kin.sdk.migration.bi.IMigrationEventsListener
 import kin.sdk.migration.core_related.KinAccountCoreImpl
+import kin.sdk.migration.exception.AccountNotFoundException
 import kin.sdk.migration.exception.FailedToResolveSdkVersionException
 import kin.sdk.migration.exception.MigrationInProcessException
 import kin.sdk.migration.exception.TransactionFailedException
 import kin.sdk.migration.interfaces.*
 import org.hamcrest.MatcherAssert.assertThat
 import org.hamcrest.Matchers
-import org.hamcrest.Matchers.containsString
-import org.hamcrest.Matchers.instanceOf
+import org.hamcrest.Matchers.*
 import org.junit.*
 import org.junit.rules.ExpectedException
 import org.mockito.Mock
@@ -44,7 +44,7 @@ class MigrationManagerIntegrationTest {
     // exceed their declared trust limit for the asset being sent.
     private val LINE_FULL_RESULT_CODE = "op_line_full"
 
-    private val timeoutDurationSecondsLong: Long = 45  //TODO change to 15
+    private val timeoutDurationSecondsLong: Long = 45 //TODO change to 15
     private val timeoutDurationSecondsShort: Long = 30 //TODO change to 10
     private val timeoutDurationSecondsVeryShort: Long = 20 //TODO change to 2
     private lateinit var migrationManagerOldKin: MigrationManager
@@ -85,7 +85,7 @@ class MigrationManagerIntegrationTest {
 
     private fun removeData() {
         val sharedPreferences = getSharedPreferences()
-        sharedPreferences.edit().remove(KIN_MIGRATION_COMPLETED_KEY).apply()
+        sharedPreferences.edit().clear().apply()
     }
 
     @Test
@@ -158,8 +158,9 @@ class MigrationManagerIntegrationTest {
             }
 
             override fun onReady(kinClient: IKinClient) {
-                isNewSdk.set(kinClient.getAccount(kinClient.accountCount - 1).kinSdkVersion == KinSdkVersion.NEW_KIN_SDK)
-                isAccountAlreadyMigrated.set(isAccountAlreadyMigrated())
+                val account = kinClient.getAccount(kinClient.accountCount - 1)
+                isNewSdk.set(account.kinSdkVersion == KinSdkVersion.NEW_KIN_SDK)
+                isAccountAlreadyMigrated.set(isAccountAlreadyMigrated(account.publicAddress))
                 latch.countDown()
             }
 
@@ -183,8 +184,8 @@ class MigrationManagerIntegrationTest {
         val isNewSdk = AtomicBoolean()
         var error: Error? = null
         val latch = CountDownLatch(1)
-        getNewKinClientAfterMigration()
-        assertTrue(isAccountAlreadyMigrated())
+        val newKinClient = getNewKinClientAfterMigration()
+        assertTrue(isAccountAlreadyMigrated(newKinClient?.getAccount(newKinClient.accountCount - 1)?.publicAddress))
         val migrationManager = getNewMigrationManager(IKinVersionProvider { KinSdkVersion.NEW_KIN_SDK })
         migrationManager.start(object : IMigrationManagerCallbacks {
 
@@ -242,6 +243,33 @@ class MigrationManagerIntegrationTest {
 
     @Test
     @LargeTest
+    fun backupOldKinAccount_CreateNewKinAccountAndMigrate_ImportAccountAndMigrate_success() {
+        // create account which we will backup
+        val accountToBackup: KinAccountCoreImpl = createActivateAndFundOldKinAccount() as KinAccountCoreImpl
+        val accountToBackupBalance = accountToBackup.balanceSync
+        val passphrase = "qwerty123"
+        val export = accountToBackup.export(passphrase)
+        // create regular old account which will now be the active account.
+        val oldAccountToMigrate = createActivateAndFundOldKinAccount()
+        // migrate this account
+        val kinClientAfterMigration = getKinClientOnNewKinBlockchain()
+        // verify that the migrated account is indeed the current active account
+        assertThat(oldAccountToMigrate?.publicAddress, `is`(equalTo(kinClientAfterMigration?.getAccount(kinClientAfterMigration.accountCount - 1)?.publicAddress)))
+        val importAccount = kinClientAfterMigration?.importAccount(export, passphrase)
+        // verify that the after the restore then the backup account is now indeed the current active account
+        assertThat(accountToBackup.publicAddress, `is`(equalTo(kinClientAfterMigration?.getAccount(kinClientAfterMigration.accountCount - 1)?.publicAddress)))
+        assertFailsWith(AccountNotFoundException::class) {
+            importAccount?.balanceSync
+        }
+        // migrate backup account
+        getKinClientOnNewKinBlockchain()
+        val balanceSync = importAccount?.balanceSync
+        // verify that after migration the balance of the backup account is equal to the balance he had before restore and migrate
+        assertEquals(balanceSync?.value()?.compareTo(accountToBackupBalance.value()), 0)
+    }
+
+    @Test
+    @LargeTest
     fun start_AlreadyMigrated_ClearMigratedFlag_ZeroBalance_AccountNotActivated_getNewKinClient() {
         start_AlreadyMigrated_ClearMigratedFlag_getNewKinClient(false)
     }
@@ -254,7 +282,7 @@ class MigrationManagerIntegrationTest {
         start_AlreadyMigrated_ClearMigratedFlag_getNewKinClient(true)
     }
 
-    private fun start_AlreadyMigrated_ClearMigratedFlag_getNewKinClient(withBalance : Boolean) {
+    private fun start_AlreadyMigrated_ClearMigratedFlag_getNewKinClient(withBalance: Boolean) {
         val migrationDidStart = AtomicBoolean()
         val isNewSdk = AtomicBoolean()
         var error: Error? = null
@@ -299,7 +327,7 @@ class MigrationManagerIntegrationTest {
         start_AlreadyBurnedAccountButNotMigrated_getNewKinClient(true)
     }
 
-    private fun start_AlreadyBurnedAccountButNotMigrated_getNewKinClient(withBalance : Boolean) {
+    private fun start_AlreadyBurnedAccountButNotMigrated_getNewKinClient(withBalance: Boolean) {
         val migrationDidStart = AtomicBoolean()
         val isNewSdk = AtomicBoolean()
         var error: Error? = null
@@ -366,15 +394,13 @@ class MigrationManagerIntegrationTest {
         val latch = CountDownLatch(1)
         var migratedKinClient: IKinClient? = null
         val kinClient = getKinClientOnOldKinBlockchain()
-        var startMigration = false
         createAccountActivateAndMigrate(kinClient, object : IMigrationManagerCallbacks {
 
             override fun onMigrationStart() {
-                startMigration = true
+                migrationDidStart.set(true)
             }
 
             override fun onReady(kinClient: IKinClient) {
-                migrationDidStart.set(startMigration)
                 migratedKinClient = kinClient
                 latch.countDown()
             }
@@ -401,9 +427,9 @@ class MigrationManagerIntegrationTest {
         migrationManagerNewKin.start(migrationManagerCallbacks)
     }
 
-    private fun isAccountAlreadyMigrated(): Boolean {
+    private fun isAccountAlreadyMigrated(publicAddress: String?): Boolean {
         val sharedPreferences = getSharedPreferences()
-        return sharedPreferences.getBoolean(KIN_MIGRATION_COMPLETED_KEY, false)
+        return sharedPreferences.getBoolean(KIN_MIGRATION_COMPLETED_KEY + publicAddress, false)
     }
 
     // Activate account on the blockchain.

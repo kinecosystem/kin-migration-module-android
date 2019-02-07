@@ -17,6 +17,7 @@ import kin.sdk.migration.core_related.KinClientCoreImpl;
 import kin.sdk.migration.exception.FailedToResolveSdkVersionException;
 import kin.sdk.migration.exception.MigrationFailedException;
 import kin.sdk.migration.exception.MigrationInProcessException;
+import kin.sdk.migration.interfaces.IKinAccount;
 import kin.sdk.migration.interfaces.IKinClient;
 import kin.sdk.migration.interfaces.IKinVersionProvider;
 import kin.sdk.migration.interfaces.IMigrationManagerCallbacks;
@@ -26,7 +27,7 @@ public class MigrationManager {
 
 	private static final String TAG = MigrationManager.class.getSimpleName();
 	static final String KIN_MIGRATION_MODULE_PREFERENCE_FILE_KEY = "KinMigrationModule";
-	static final String KIN_MIGRATION_COMPLETED_KEY = "migration_completed_key";
+	static final String KIN_MIGRATION_COMPLETED_KEY = "migration_completed_key_";
 
 	private final Context context;
 	private final String appId;
@@ -66,10 +67,8 @@ public class MigrationManager {
 	 * @return the current kin client.
 	 */
 	public IKinClient getCurrentKinClient() {
-		final IKinClient kinClient;
-		if (isMigrationAlreadyCompleted()) {
-			kinClient = initNewKin();
-		} else {
+		IKinClient kinClient = initNewKin();
+		if (!isMigrationAlreadyCompleted(kinClient)) {
 			kinClient = initKinCore();
 		}
 		Logger.d("getLastKinClient sdkVersion = " +
@@ -106,9 +105,10 @@ public class MigrationManager {
 	}
 
 	private void startMigrationProcess(final IMigrationManagerCallbacks migrationManagerCallbacks) {
-		if (isMigrationAlreadyCompleted()) {
+		final IKinClient newKinClient = initNewKin();
+		if (isMigrationAlreadyCompleted(newKinClient)) {
 			eventsNotifier.onCallbackReady(KinSdkVersion.NEW_KIN_SDK, SelectedSdkReason.ALREADY_MIGRATED);
-			fireOnReady(migrationManagerCallbacks, initNewKin(), false);
+			fireOnReady(migrationManagerCallbacks, newKinClient, false);
 		} else {
 			try {
 				eventsNotifier.onVersionCheckStarted();
@@ -120,7 +120,7 @@ public class MigrationManager {
 				} else {
 					if (kinSdkVersion == KinSdkVersion.NEW_KIN_SDK) {
 						eventsNotifier.onVersionCheckSucceeded(KinSdkVersion.NEW_KIN_SDK);
-						burnAndMigrateAccount(migrationManagerCallbacks);
+						burnAndMigrateAccount(newKinClient, migrationManagerCallbacks);
 					} else {
 						eventsNotifier.onVersionCheckSucceeded(KinSdkVersion.OLD_KIN_SDK);
 						eventsNotifier.onCallbackReady(KinSdkVersion.OLD_KIN_SDK, SelectedSdkReason.API_CHECK);
@@ -134,7 +134,8 @@ public class MigrationManager {
 		}
 	}
 
-	private void burnAndMigrateAccount(final IMigrationManagerCallbacks migrationManagerCallbacks) {
+	private void burnAndMigrateAccount(final IKinClient newKinClient,
+		final IMigrationManagerCallbacks migrationManagerCallbacks) {
 		KinClientCoreImpl kinClientCore = initKinCore();
 		if (kinClientCore.hasAccount()) {
 			postMigrationStart(migrationManagerCallbacks);
@@ -150,7 +151,7 @@ public class MigrationManager {
 						AccountMigrator accountMigrator = new AccountMigrator(eventsNotifier, migrationNetworkInfo);
 						try {
 							accountMigrator.migrateToNewKin(publicAddress);
-							fireOnReady(migrationManagerCallbacks, initNewKin(), true);
+							fireOnReady(migrationManagerCallbacks, newKinClient, true);
 						} catch (Exception e) {
 							fireOnError(migrationManagerCallbacks, e);
 						}
@@ -159,7 +160,7 @@ public class MigrationManager {
 					case NO_TRUSTLINE:
 						eventsNotifier
 							.onCallbackReady(KinSdkVersion.NEW_KIN_SDK, SelectedSdkReason.NO_ACCOUNT_TO_MIGRATE);
-						fireOnReady(migrationManagerCallbacks, initNewKin(), true);
+						fireOnReady(migrationManagerCallbacks, newKinClient, true);
 						break;
 				}
 			} catch (MigrationFailedException e) {
@@ -167,7 +168,7 @@ public class MigrationManager {
 			}
 		} else {
 			eventsNotifier.onCallbackReady(KinSdkVersion.NEW_KIN_SDK, SelectedSdkReason.NO_ACCOUNT_TO_MIGRATE);
-			fireOnReady(migrationManagerCallbacks, initNewKin(), true);
+			fireOnReady(migrationManagerCallbacks, newKinClient, true);
 		}
 	}
 
@@ -202,16 +203,22 @@ public class MigrationManager {
 		return kinClient;
 	}
 
-	private void saveMigrationCompleted() {
+	private void saveMigrationCompleted(String publicAddress) {
 		// save migration completion status from the persistent state.
 		SharedPreferences sharedPreferences = getSharedPreferences();
-		sharedPreferences.edit().putBoolean(KIN_MIGRATION_COMPLETED_KEY, true).apply();
+		sharedPreferences.edit().putBoolean(KIN_MIGRATION_COMPLETED_KEY + publicAddress, true).apply();
 	}
 
-	private boolean isMigrationAlreadyCompleted() {
+	private boolean isMigrationAlreadyCompleted(IKinClient newKinClient) {
 		// get migration completion status from the persistent state.
-		SharedPreferences sharedPreferences = getSharedPreferences();
-		return sharedPreferences.getBoolean(KIN_MIGRATION_COMPLETED_KEY, false);
+		boolean isMigrationAlreadyCompleted = false;
+		if (newKinClient.hasAccount()) {
+			IKinAccount account = newKinClient.getAccount(newKinClient.getAccountCount() - 1);
+			SharedPreferences sharedPreferences = getSharedPreferences();
+			isMigrationAlreadyCompleted = sharedPreferences
+				.getBoolean(KIN_MIGRATION_COMPLETED_KEY + account.getPublicAddress(), false);
+		}
+		return isMigrationAlreadyCompleted;
 	}
 
 	private SharedPreferences getSharedPreferences() {
@@ -236,8 +243,10 @@ public class MigrationManager {
 		handler.post(new Runnable() {
 			@Override
 			public void run() {
-				if (needToSave) {
-					saveMigrationCompleted();
+				if (needToSave && kinClient.hasAccount()) {
+					IKinAccount account = kinClient.getAccount(kinClient.getAccountCount() - 1);
+					String publicAddress = account.getPublicAddress();
+					saveMigrationCompleted(publicAddress);
 				}
 				isMigrationInProcess.set(false);
 				if (migrationManagerCallbacks != null) {
