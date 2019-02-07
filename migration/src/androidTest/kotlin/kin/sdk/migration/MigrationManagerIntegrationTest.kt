@@ -274,7 +274,7 @@ class MigrationManagerIntegrationTest {
         start_AlreadyMigrated_ClearMigratedFlag_getNewKinClient(false)
     }
 
-    //TODO need to find a way to differentiate between those 2 tests.
+    //TODO differentiate between those 2 tests using the events, meaning add verify to events.
 
     @Test
     @LargeTest
