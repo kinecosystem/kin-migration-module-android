@@ -6,14 +6,12 @@ import android.os.Bundle;
 import android.support.v7.widget.SwitchCompat;
 import android.view.View;
 import android.widget.TextView;
-
 import kin.sdk.migration.KinSdkVersion;
+import kin.sdk.migration.exception.DeleteAccountException;
 import kin.sdk.migration.interfaces.IAccountStatus;
 import kin.sdk.migration.interfaces.IBalance;
 import kin.sdk.migration.interfaces.IKinAccount;
-import kin.sdk.migration.interfaces.IKinVersionProvider;
 import kin.sdk.migration.interfaces.IListenerRegistration;
-import kin.sdk.migration.exception.DeleteAccountException;
 import kin.utils.Request;
 import kin.utils.ResultCallback;
 
@@ -43,7 +41,6 @@ public class WalletActivity extends BaseActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.wallet_activity);
-
         account = getKinClient().getAccount(0);
         initWidgets();
     }
