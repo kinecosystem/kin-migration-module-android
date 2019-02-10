@@ -5,14 +5,13 @@ import android.support.annotation.NonNull;
 import kin.sdk.Environment;
 import kin.sdk.KinAccount;
 import kin.sdk.KinClient;
-import kin.sdk.migration.interfaces.IEnvironment;
-import kin.sdk.migration.interfaces.IKinAccount;
-import kin.sdk.migration.interfaces.IKinClient;
-import kin.sdk.migration.interfaces.IWhitelistService;
 import kin.sdk.migration.exception.CorruptedDataException;
 import kin.sdk.migration.exception.CreateAccountException;
 import kin.sdk.migration.exception.CryptoException;
 import kin.sdk.migration.exception.DeleteAccountException;
+import kin.sdk.migration.interfaces.IEnvironment;
+import kin.sdk.migration.interfaces.IKinAccount;
+import kin.sdk.migration.interfaces.IKinClient;
 
 public class KinClientSdkImpl implements IKinClient {
 

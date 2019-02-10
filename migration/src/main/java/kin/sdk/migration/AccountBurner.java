@@ -29,7 +29,7 @@ class AccountBurner {
 	 * @return the reason.
 	 */
 	@NonNull
-	BurnReason startBurnAccountProcess(final KinAccountCoreImpl account)
+	BurnReason start(final KinAccountCoreImpl account)
 		throws MigrationFailedException {
 		String publicAddress = account.getPublicAddress();
 		if (publicAddress != null) {

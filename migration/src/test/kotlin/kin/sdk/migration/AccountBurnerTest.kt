@@ -42,7 +42,7 @@ class AccountBurnerTest {
 
         // When
         val accountBurner = AccountBurner(eventsNotifier)
-        val burnReason = accountBurner.startBurnAccountProcess(kinAccount)
+        val burnReason = accountBurner.start(kinAccount)
 
         // Then
         verify(kinAccount, times(1)).sendBurnTransactionSync(ArgumentMatchers.anyString())
@@ -57,7 +57,7 @@ class AccountBurnerTest {
 
         // When
         val accountBurner = AccountBurner(eventsNotifier)
-        val burnReason = accountBurner.startBurnAccountProcess(kinAccount)
+        val burnReason = accountBurner.start(kinAccount)
 
         // Then
         verify(kinAccount, times(0)).sendBurnTransactionSync(ArgumentMatchers.anyString())
