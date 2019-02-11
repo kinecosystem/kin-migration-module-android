@@ -4,43 +4,53 @@ import android.content.Context
 import android.content.SharedPreferences
 import android.support.test.InstrumentationRegistry
 import android.support.test.filters.LargeTest
+import kin.sdk.migration.IntegConsts.TEST_CORE_URL_FUND
+import kin.sdk.migration.IntegConsts.TEST_SDK_URL_CREATE_ACCOUNT
 import kin.sdk.migration.MigrationManager.KIN_MIGRATION_COMPLETED_KEY
 import kin.sdk.migration.MigrationManager.KIN_MIGRATION_MODULE_PREFERENCE_FILE_KEY
 import kin.sdk.migration.bi.IMigrationEventsListener
 import kin.sdk.migration.core_related.KinAccountCoreImpl
+import kin.sdk.migration.exception.AccountNotFoundException
 import kin.sdk.migration.exception.FailedToResolveSdkVersionException
 import kin.sdk.migration.exception.MigrationInProcessException
+import kin.sdk.migration.exception.TransactionFailedException
 import kin.sdk.migration.interfaces.*
+import org.hamcrest.MatcherAssert.assertThat
+import org.hamcrest.Matchers
+import org.hamcrest.Matchers.*
 import org.junit.*
 import org.junit.rules.ExpectedException
 import org.mockito.Mock
 import org.mockito.MockitoAnnotations
 import java.io.IOException
+import java.math.BigDecimal
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.TimeUnit
+import java.util.concurrent.atomic.AtomicBoolean
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertTrue
 import kotlin.test.fail
 
+
 @Suppress("FunctionName")
 class MigrationManagerIntegrationTest {
 
-    private val sdkTestNetworkUrl = "https://horizon-testnet.kininfrastructure.com/"
-    private val sdkTestNetworkId = "Kin Testnet ; December 2018"
-    private val coreTestNetworkUrl = "https://horizon-playground.kininfrastructure.com/"
-    private val coreTestNetworkId = "Kin Playground Network ; June 2018"
     private val coreIssuer = "GBC3SG6NGTSZ2OMH3FFGB7UVRQWILW367U4GSOOF4TFSZONV42UJXUH7"
-    private val migrateServiceUrl = "https://migration-devplatform-playground.developers.kinecosystem.com/migrate?address="
+    private val migrationServiceUrl = "https://migration-devplatform-playground.developers.kinecosystem.com/migrate?address="
+    private val fundKinAmount = 10
 
+    // Op Line Full occurs when a payment would cause a destination account to
+    // exceed their declared trust limit for the asset being sent.
+    private val LINE_FULL_RESULT_CODE = "op_line_full"
 
-    private val timeoutDurationSecondsLong: Long = 50 //TODO need to change to a normal number, maybe 15 seconds
-    private val timeoutDurationSecondsShort: Long = 10 //TODO need to change to a normal number, maybe 5 seconds
-    private val timeoutDurationSecondsVeryShort: Long = 2
+    private val timeoutDurationSecondsLong: Long = 45 //TODO change to 15
+    private val timeoutDurationSecondsShort: Long = 30 //TODO change to 10
+    private val timeoutDurationSecondsVeryShort: Long = 20 //TODO change to 2
     private lateinit var migrationManagerOldKin: MigrationManager
     private lateinit var migrationManagerNewKin: MigrationManager
-    private val networkInfo = MigrationNetworkInfo(coreTestNetworkUrl, coreTestNetworkId, sdkTestNetworkUrl,
-            sdkTestNetworkId, coreIssuer, migrateServiceUrl)
+    private val networkInfo = MigrationNetworkInfo(IntegConsts.TEST_CORE_NETWORK_URL, IntegConsts.TEST_CORE_NETWORK_ID, IntegConsts.TEST_SDK_NETWORK_URL,
+            IntegConsts.TEST_SDK_NETWORK_ID, coreIssuer, migrationServiceUrl)
 
     @Mock
     lateinit var eventListener: IMigrationEventsListener
@@ -49,7 +59,7 @@ class MigrationManagerIntegrationTest {
     @JvmField
     val expectedEx: ExpectedException = ExpectedException.none()
 
-    private val migrationManagerListener = object : IMigrationManagerCallbacks {
+    private val migrationManagerCallbacks = object : IMigrationManagerCallbacks {
         override fun onMigrationStart() {
         }
 
@@ -75,13 +85,22 @@ class MigrationManagerIntegrationTest {
 
     private fun removeData() {
         val sharedPreferences = getSharedPreferences()
-        sharedPreferences.edit().remove(KIN_MIGRATION_COMPLETED_KEY).apply()
+        sharedPreferences.edit().clear().apply()
+    }
+
+    @Test
+    @LargeTest
+    fun start_OldKinBlockchain_getOldKinClient() {
+        val oldKinClient = getKinClientOnOldKinBlockchain()
+        // add account only locally but not in the blockchain
+        oldKinClient?.addAccount()
+        val oldKinAccount = oldKinClient?.getAccount(oldKinClient.accountCount - 1)
+        assertEquals(oldKinAccount?.kinSdkVersion, KinSdkVersion.OLD_KIN_SDK)
     }
 
     @Test
     @LargeTest
     fun start_NewKinBlockchain_AccountNotFound_getNewKinClient() {
-        val latch = CountDownLatch(1)
         // getting a kin client just in order to use it for creating a local account and then start the migration.
         val oldKinClient = getKinClientOnOldKinBlockchain()
         // add account only locally but not in the blockchain
@@ -90,8 +109,6 @@ class MigrationManagerIntegrationTest {
         val newKinClient = getKinClientOnNewKinBlockchain()
         val newAccount = newKinClient?.getAccount(newKinClient.accountCount - 1)
         assertEquals(newAccount?.kinSdkVersion, KinSdkVersion.NEW_KIN_SDK)
-        latch.countDown()
-        assertTrue(latch.await(timeoutDurationSecondsLong, TimeUnit.SECONDS))
     }
 
     @Test
@@ -113,76 +130,90 @@ class MigrationManagerIntegrationTest {
     @LargeTest
     fun start_StartWhileInProcess_MigrationInProcessException() {
         assertFailsWith(MigrationInProcessException::class) {
-            val latch = CountDownLatch(1)
             val migrationManager = getNewMigrationManager(IKinVersionProvider {
                 // waiting so it will be in the middle of the migration process while starting another one.
-                latch.await(timeoutDurationSecondsShort, TimeUnit.SECONDS)
+                Thread.sleep(3000)
                 KinSdkVersion.OLD_KIN_SDK
             })
-            migrationManager.start(migrationManagerListener)
+            migrationManager.start(migrationManagerCallbacks)
             // waiting a bit so the started migration will be in the process.
-            Thread.sleep(2000)
-            migrationManager.start(migrationManagerListener)
-            latch.countDown()
+            Thread.sleep(1000)
+            migrationManager.start(migrationManagerCallbacks)
         }
     }
 
     @Test
     @LargeTest
     fun start_NeedToMigrate_getNewMigratedKinClient() {
+        val migrationDidStart = AtomicBoolean()
+        val isNewSdk = AtomicBoolean()
+        val isAccountAlreadyMigrated = AtomicBoolean()
+        var error: Error? = null
         val latch = CountDownLatch(1)
         val kinClient = getKinClientOnOldKinBlockchain()
-        var migrationStarted = false
         createAccountActivateAndMigrate(kinClient, object : IMigrationManagerCallbacks {
 
             override fun onMigrationStart() {
-                migrationStarted = true
+                migrationDidStart.set(true)
             }
 
             override fun onReady(kinClient: IKinClient) {
-                assertTrue(migrationStarted)
-                assertEquals(kinClient.getAccount(kinClient.accountCount - 1).getKinSdkVersion(), KinSdkVersion.NEW_KIN_SDK)
-                assertTrue(isAccountAlreadyMigrated())
+                val account = kinClient.getAccount(kinClient.accountCount - 1)
+                isNewSdk.set(account.kinSdkVersion == KinSdkVersion.NEW_KIN_SDK)
+                isAccountAlreadyMigrated.set(isAccountAlreadyMigrated(account.publicAddress))
                 latch.countDown()
             }
 
             override fun onError(e: Exception) {
-                fail("not supposed to reach onError with this exception: $e")
+                error = Error(e)
             }
 
         })
         assertTrue(latch.await(timeoutDurationSecondsLong, TimeUnit.SECONDS))
+        assertTrue(migrationDidStart.get())
+        assertTrue(isNewSdk.get())
+        assertTrue(isAccountAlreadyMigrated.get())
+        assertThat(error?.exception, Matchers.nullValue())
     }
 
 
     @Test
     @LargeTest
     fun start_MigrationAlreadyCompleted_getNewKinClient() {
+        val migrationDidStart = AtomicBoolean()
+        val isNewSdk = AtomicBoolean()
+        var error: Error? = null
         val latch = CountDownLatch(1)
-        getNewKinClientAfterMigration()// blocking call
-        assertTrue(isAccountAlreadyMigrated())
+        val newKinClient = getNewKinClientAfterMigration()
+        assertTrue(isAccountAlreadyMigrated(newKinClient?.getAccount(newKinClient.accountCount - 1)?.publicAddress))
         val migrationManager = getNewMigrationManager(IKinVersionProvider { KinSdkVersion.NEW_KIN_SDK })
         migrationManager.start(object : IMigrationManagerCallbacks {
 
             override fun onMigrationStart() {
-                fail("not supposed to reach onMigrationStart")
+                migrationDidStart.set(true)
             }
 
             override fun onReady(kinClient: IKinClient) {
-                assertEquals(kinClient.getAccount(kinClient.accountCount - 1).getKinSdkVersion(), KinSdkVersion.NEW_KIN_SDK)
+                isNewSdk.set(kinClient.getAccount(kinClient.accountCount - 1).kinSdkVersion == KinSdkVersion.NEW_KIN_SDK)
                 latch.countDown()
             }
 
             override fun onError(e: Exception) {
-                fail("not supposed to reach onError with this exception: $e")
+                error = Error(e)
             }
         })
         assertTrue(latch.await(timeoutDurationSecondsLong, TimeUnit.SECONDS))
+        assertTrue(!migrationDidStart.get())
+        assertTrue(isNewSdk.get())
+        assertThat(error?.exception, Matchers.nullValue())
     }
 
     @Test
     @LargeTest
     fun start_NoVersionReceived_FailedToResolveSdkVersionException() {
+        val migrationDidStart = AtomicBoolean()
+        val gotClient = AtomicBoolean()
+        var error: Error? = null
         val latch = CountDownLatch(1)
         val oldKinClient = getKinClientOnOldKinBlockchain()
         val account = oldKinClient?.addAccount()
@@ -190,101 +221,138 @@ class MigrationManagerIntegrationTest {
         val migrationManager = getNewMigrationManager(IKinVersionProvider { throw FailedToResolveSdkVersionException() })
         migrationManager.start(object : IMigrationManagerCallbacks {
             override fun onMigrationStart() {
-                fail("not supposed to reach onMigrationStart")
+                migrationDidStart.set(true)
             }
 
             override fun onReady(kinClient: IKinClient) {
-                fail("not supposed to reach onReady")
+                gotClient.set(true)
             }
 
             override fun onError(e: java.lang.Exception) {
+                error = Error(e)
                 assertTrue(e is FailedToResolveSdkVersionException)
                 latch.countDown()
             }
 
         })
         assertTrue(latch.await(timeoutDurationSecondsLong, TimeUnit.SECONDS))
+        assertTrue(!migrationDidStart.get())
+        assertTrue(!gotClient.get())
+        assertThat(error?.exception, Matchers.`is`(instanceOf(FailedToResolveSdkVersionException::class.java)))
     }
 
     @Test
     @LargeTest
-    fun start_AlreadyMigratedButNotSavedLocally_ZeroBalance_AccountNotActivated_getNewKinClient() {
-        val latch = CountDownLatch(1)
-        getNewKinClientAfterMigration()// blocking call
-        teardown()
-        val migrationManager = getNewMigrationManager(IKinVersionProvider { KinSdkVersion.NEW_KIN_SDK })
-        var migrationStarted = false
-        migrationManager.start(object : IMigrationManagerCallbacks {
-            override fun onMigrationStart() {
-                migrationStarted = true
-            }
-
-            override fun onReady(kinClient: IKinClient) {
-                assertTrue(migrationStarted)
-                assertEquals(kinClient.getAccount(kinClient.accountCount - 1).getKinSdkVersion(), KinSdkVersion.NEW_KIN_SDK)
-                latch.countDown()
-            }
-
-            override fun onError(e: java.lang.Exception) {
-                fail("not supposed to reach onError with this exception: $e")
-            }
-
-        })
-        assertTrue(latch.await(timeoutDurationSecondsLong, TimeUnit.SECONDS))
+    fun backupOldKinAccount_CreateNewKinAccountAndMigrate_ImportAccountAndMigrate_success() {
+        // create account which we will backup
+        val accountToBackup: KinAccountCoreImpl = createActivateAndFundOldKinAccount() as KinAccountCoreImpl
+        val accountToBackupBalance = accountToBackup.balanceSync
+        val passphrase = "qwerty123"
+        val export = accountToBackup.export(passphrase)
+        // create regular old account which will now be the active account.
+        val oldAccountToMigrate = createActivateAndFundOldKinAccount()
+        // migrate this account
+        val kinClientAfterMigration = getKinClientOnNewKinBlockchain()
+        // verify that the migrated account is indeed the current active account
+        assertThat(oldAccountToMigrate?.publicAddress, `is`(equalTo(kinClientAfterMigration?.getAccount(kinClientAfterMigration.accountCount - 1)?.publicAddress)))
+        val importAccount = kinClientAfterMigration?.importAccount(export, passphrase)
+        // verify that the after the restore then the backup account is now indeed the current active account
+        assertThat(accountToBackup.publicAddress, `is`(equalTo(kinClientAfterMigration?.getAccount(kinClientAfterMigration.accountCount - 1)?.publicAddress)))
+        assertFailsWith(AccountNotFoundException::class) {
+            importAccount?.balanceSync
+        }
+        // migrate backup account
+        getKinClientOnNewKinBlockchain()
+        val balanceSync = importAccount?.balanceSync
+        // verify that after migration the balance of the backup account is equal to the balance he had before restore and migrate
+        assertEquals(balanceSync?.value()?.compareTo(accountToBackupBalance.value()), 0)
     }
 
     @Test
     @LargeTest
-    fun start_AlreadyMigratedButNotSavedLocally_WithBalance_getNewKinClient() {
+    fun start_AlreadyMigrated_ClearMigratedFlag_ZeroBalance_AccountNotActivated_getNewKinClient() {
+        start_AlreadyMigrated_ClearMigratedFlag_getNewKinClient(false)
+    }
+
+    //TODO differentiate between those 2 tests using the events, meaning add verify to events.
+
+    @Test
+    @LargeTest
+    fun start_AlreadyMigratedBut_ClearMigratedFlag_WithBalance_getNewKinClient() {
+        start_AlreadyMigrated_ClearMigratedFlag_getNewKinClient(true)
+    }
+
+    private fun start_AlreadyMigrated_ClearMigratedFlag_getNewKinClient(withBalance: Boolean) {
+        val migrationDidStart = AtomicBoolean()
+        val isNewSdk = AtomicBoolean()
+        var error: Error? = null
         val latch = CountDownLatch(1)
-        getNewKinClientAfterMigration()// blocking call
-        teardown()
-        fail("remove this fail after finished with the TODO")//TODO  add funding with faucet
+        val kinClient = getNewKinClientAfterMigration()
+        removeData()
+        if (withBalance) { //TODO do i really want to fund the new migrated account???
+            fakeKinIssuer.fundWithKin(String.format(TEST_SDK_URL_CREATE_ACCOUNT + fundKinAmount, kinClient?.getAccount(kinClient.accountCount)))
+        }
+
         val migrationManager = getNewMigrationManager(IKinVersionProvider { KinSdkVersion.NEW_KIN_SDK })
         migrationManager.start(object : IMigrationManagerCallbacks {
-            var migrationStarted = false
             override fun onMigrationStart() {
-                migrationStarted = true
+                migrationDidStart.set(true)
             }
 
             override fun onReady(kinClient: IKinClient) {
-                assertTrue(migrationStarted)
-                assertEquals(kinClient.getAccount(kinClient.accountCount - 1).kinSdkVersion, KinSdkVersion.NEW_KIN_SDK)
+                isNewSdk.set(kinClient.getAccount(kinClient.accountCount - 1).kinSdkVersion == KinSdkVersion.NEW_KIN_SDK)
                 latch.countDown()
             }
 
             override fun onError(e: java.lang.Exception) {
-                fail("not supposed to reach onError with this exception: $e")
+                error = Error(e)
             }
 
         })
         assertTrue(latch.await(timeoutDurationSecondsLong, TimeUnit.SECONDS))
+        assertTrue(migrationDidStart.get())
+        assertTrue(isNewSdk.get())
+        assertThat(error?.exception, Matchers.nullValue())
     }
 
     @Test
     @LargeTest
     fun start_AlreadyBurnedAccountButNotMigrated_ZeroBalance_AccountNotActivated_getNewKinClient() {
+        start_AlreadyBurnedAccountButNotMigrated_getNewKinClient(false)
+    }
+
+    @Test
+    @LargeTest
+    fun start_AlreadyBurnedAccountButNotMigrated_WithBalance_MigrateAndGetNewKinClient() {
+        start_AlreadyBurnedAccountButNotMigrated_getNewKinClient(true)
+    }
+
+    private fun start_AlreadyBurnedAccountButNotMigrated_getNewKinClient(withBalance: Boolean) {
+        val migrationDidStart = AtomicBoolean()
+        val isNewSdk = AtomicBoolean()
+        var error: Error? = null
         val oldKinClient = getKinClientOnOldKinBlockchain()
         val account = oldKinClient?.addAccount()
         createAccount(account)
         activateAccount(account)
+        if (withBalance) {
+            fakeKinIssuer.fundWithKin(String.format(TEST_SDK_URL_CREATE_ACCOUNT + fundKinAmount, account?.publicAddress))
+        }
         if (account is KinAccountCoreImpl) {
             val latch = CountDownLatch(1)
             account.sendBurnTransactionSync(account.publicAddress.orEmpty())
-            var migrationStarted = false
             migrationManagerNewKin.start(object : IMigrationManagerCallbacks {
                 override fun onMigrationStart() {
-                    migrationStarted = true
+                    migrationDidStart.set(true)
                 }
 
                 override fun onReady(kinClient: IKinClient) {
-                    assertTrue(migrationStarted)
-                    assertEquals(kinClient.getAccount(kinClient.accountCount - 1).kinSdkVersion, KinSdkVersion.NEW_KIN_SDK)
+                    isNewSdk.set(kinClient.getAccount(kinClient.accountCount - 1).kinSdkVersion == KinSdkVersion.NEW_KIN_SDK)
                     latch.countDown()
                 }
 
                 override fun onError(e: java.lang.Exception) {
-                    fail("not supposed to reach onError with this exception: $e")
+                    error = Error(e)
                 }
 
             })
@@ -292,41 +360,60 @@ class MigrationManagerIntegrationTest {
         } else {
             fail("oldKinAccount should be from type KinAccountCoreImpl in order to burn the account")
         }
+        assertTrue(migrationDidStart.get())
+        assertTrue(isNewSdk.get())
+        assertThat(error?.exception, Matchers.nullValue())
     }
 
     @Test
     @LargeTest
-    fun start_AlreadyBurnedAccountButNotMigrated_WithBalance_MigrateAndGetNewKinClient() {
-        //TODO need to implement after we check how to fund the account with the current issuer and the random issuer because then migration could not succeed
+    fun start_burn_sendKinTBurnedAccount_TransactionFailedException() {
+        val assertFailsWith = assertFailsWith(TransactionFailedException::class) {
+            val oldAccount1 = createActivateAndFundOldKinAccount()
+            getKinClientOnNewKinBlockchain()
+            removeData()
+            val oldAccount2 = createActivateAndFundOldKinAccount()
+            oldAccount2?.sendTransactionSync(oldAccount1?.publicAddress.orEmpty(), BigDecimal(10), null)
+        }
+        assertThat(assertFailsWith.message, containsString(LINE_FULL_RESULT_CODE))
+
     }
 
-    //TODO should we test all kind of scenarios like it was burned but then network or something fail and he didn't migrate
-    //TODO and then in a different time he tries again?
-    //TODO maybe test also if account is burned and migrated or burned but not migrated
+    private fun createActivateAndFundOldKinAccount(): IKinAccount? {
+        val oldKinClient = getKinClientOnOldKinBlockchain()
+        val account = oldKinClient?.addAccount()
+        createAccount(account)
+        activateAccount(account)
+        fakeKinIssuer.fundWithKin(String.format(TEST_CORE_URL_FUND + fundKinAmount, account?.publicAddress))
+        return account
+    }
 
     private fun getNewKinClientAfterMigration(): IKinClient? {
+        val migrationDidStart = AtomicBoolean()
+        var error: Error? = null
         val latch = CountDownLatch(1)
         var migratedKinClient: IKinClient? = null
         val kinClient = getKinClientOnOldKinBlockchain()
-        var startMigration = false
         createAccountActivateAndMigrate(kinClient, object : IMigrationManagerCallbacks {
 
             override fun onMigrationStart() {
-                startMigration = true
+                migrationDidStart.set(true)
             }
 
             override fun onReady(kinClient: IKinClient) {
-                assertTrue(startMigration)
                 migratedKinClient = kinClient
                 latch.countDown()
             }
 
             override fun onError(e: Exception) {
-                fail("not supposed to reach onError with this exception: $e")
+                error = MigrationManagerIntegrationTest.Error(e)
             }
 
         })
-        latch.await(timeoutDurationSecondsLong, TimeUnit.SECONDS)
+        assertTrue(latch.await(timeoutDurationSecondsLong, TimeUnit.SECONDS))
+        assertTrue(migrationDidStart.get())
+        assertThat(error?.exception, Matchers.nullValue())
+
         return migratedKinClient
     }
 
@@ -340,36 +427,29 @@ class MigrationManagerIntegrationTest {
         migrationManagerNewKin.start(migrationManagerCallbacks)
     }
 
-    private fun isAccountAlreadyMigrated(): Boolean {
+    private fun isAccountAlreadyMigrated(publicAddress: String?): Boolean {
         val sharedPreferences = getSharedPreferences()
-        return sharedPreferences.getBoolean(KIN_MIGRATION_COMPLETED_KEY, false)
+        return sharedPreferences.getBoolean(KIN_MIGRATION_COMPLETED_KEY + publicAddress, false)
     }
 
-    // Activate account on the blockchain and when activation is complete then the method will end.
+    // Activate account on the blockchain.
+    // Note that this method is blocking.
     private fun activateAccount(account: IKinAccount?) {
-        val latch = CountDownLatch(1)
-        // run it on a background thread because this method is called from the main ui thread.
-        Thread(Runnable {
-            account?.activateSync()
-            latch.countDown()
-        }).start()
-        assertTrue(latch.await(timeoutDurationSecondsShort, TimeUnit.SECONDS))
+        account?.activateSync()
     }
 
     // Create account on the blockchain and when creation complete then the method will end.
     private fun createAccount(account: IKinAccount?) {
-        val latch = CountDownLatch(1)
         // run it on a background thread because this method is called from the main ui thread.
-        Thread(Runnable {
-            fakeKinIssuer.createAccount(account?.publicAddress.orEmpty())
-        }).start()
+        fakeKinIssuer.createAccount(account?.publicAddress.orEmpty())
 
+        val latch = CountDownLatch(1)
         var listenerRegistration: IListenerRegistration? = null
         listenerRegistration = account?.addAccountCreationListener {
             listenerRegistration?.remove()
             latch.countDown()
         }
-        assertTrue(latch.await(10, TimeUnit.SECONDS))
+        assertTrue(latch.await(timeoutDurationSecondsShort, TimeUnit.SECONDS))
     }
 
     private fun getNewMigrationManager(kinVersionProvider: IKinVersionProvider): MigrationManager {
@@ -378,44 +458,55 @@ class MigrationManagerIntegrationTest {
     }
 
     private fun getKinClientOnNewKinBlockchain(): IKinClient? {
+        val isNewSdk = AtomicBoolean()
+        var error: Error? = null
         val latch = CountDownLatch(1)
         var newKinClient: IKinClient? = null
         migrationManagerNewKin.start(object : IMigrationManagerCallbacks {
             override fun onMigrationStart() {
-
             }
 
             override fun onReady(kinClient: IKinClient) {
+                isNewSdk.set(kinClient.getAccount(kinClient.accountCount - 1).kinSdkVersion == KinSdkVersion.NEW_KIN_SDK)
                 newKinClient = kinClient
                 latch.countDown()
             }
 
             override fun onError(e: Exception) {
-                fail("not supposed to reach onError with this exception: $e")
+                error = Error(e)
             }
         })
-        latch.await(timeoutDurationSecondsLong, TimeUnit.SECONDS)
+        assertTrue(latch.await(timeoutDurationSecondsLong, TimeUnit.SECONDS))
+        assertTrue(isNewSdk.get())
+        assertThat(error?.exception, Matchers.nullValue())
         return newKinClient
     }
 
     private fun getKinClientOnOldKinBlockchain(): IKinClient? {
+        val migrationDidStart = AtomicBoolean()
+        val isOldSdk = AtomicBoolean()
+        var error: Error? = null
         val latch = CountDownLatch(1)
         var oldKinClient: IKinClient? = null
         migrationManagerOldKin.start(object : IMigrationManagerCallbacks {
             override fun onMigrationStart() {
-
+                migrationDidStart.set(true)
             }
 
             override fun onReady(kinClient: IKinClient) {
+                isOldSdk.set(kinClient.getAccount(kinClient.accountCount - 1).kinSdkVersion == KinSdkVersion.OLD_KIN_SDK)
                 oldKinClient = kinClient
                 latch.countDown()
             }
 
             override fun onError(e: Exception) {
-                fail("not supposed to reach onError with this exception: $e")
+                error = Error(e)
             }
         })
-        latch.await(timeoutDurationSecondsVeryShort, TimeUnit.SECONDS)
+        assertTrue(latch.await(timeoutDurationSecondsVeryShort, TimeUnit.SECONDS))
+        assertTrue(!migrationDidStart.get())
+        assertTrue(isOldSdk.get())
+        assertThat(error?.exception, Matchers.nullValue())
         return oldKinClient
     }
 
@@ -433,6 +524,9 @@ class MigrationManagerIntegrationTest {
         fun setupKinIssuer() {
             fakeKinIssuer = FakeKinCoreIssuer()
         }
+
     }
+
+    class Error(val exception: java.lang.Exception, val message: String = "")
 
 }

@@ -2,15 +2,13 @@ package kin.sdk.migration;
 
 
 import android.support.annotation.NonNull;
-
-
+import java.util.ArrayList;
+import kin.sdk.migration.exception.TransactionFailedException;
 import org.stellar.sdk.responses.SubmitTransactionResponse;
 
-import java.util.ArrayList;
-
-import kin.sdk.migration.exception.TransactionFailedException;
-
 final class Utils {
+
+	static final int MAX_RETRIES = 3;
 
     private Utils() {
         //no instances
