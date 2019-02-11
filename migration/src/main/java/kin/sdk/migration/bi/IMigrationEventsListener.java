@@ -1,6 +1,6 @@
 package kin.sdk.migration.bi;
 
-import kin.sdk.migration.KinSdkVersion;
+import kin.sdk.migration.common.KinSdkVersion;
 
 public interface IMigrationEventsListener {
 

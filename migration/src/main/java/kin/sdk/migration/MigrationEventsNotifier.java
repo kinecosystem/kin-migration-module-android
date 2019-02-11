@@ -2,6 +2,7 @@ package kin.sdk.migration;
 
 import kin.sdk.Logger;
 import kin.sdk.migration.bi.IMigrationEventsListener;
+import kin.sdk.migration.common.KinSdkVersion;
 
 class MigrationEventsNotifier implements IMigrationEventsListener {
 

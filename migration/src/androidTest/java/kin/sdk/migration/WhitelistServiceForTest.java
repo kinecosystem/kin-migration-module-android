@@ -3,10 +3,10 @@ package kin.sdk.migration;
 
 import java.io.IOException;
 import java.util.concurrent.TimeUnit;
-import kin.sdk.migration.exception.WhitelistTransactionFailedException;
-import kin.sdk.migration.interfaces.IWhitelistService;
-import kin.sdk.migration.interfaces.IWhitelistableTransaction;
-import kin.sdk.migration.sdk_related.WhitelistResult;
+import kin.sdk.migration.common.WhitelistResult;
+import kin.sdk.migration.common.exception.WhitelistTransactionFailedException;
+import kin.sdk.migration.common.interfaces.IWhitelistService;
+import kin.sdk.migration.common.interfaces.IWhitelistableTransaction;
 import okhttp3.MediaType;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;

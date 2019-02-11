@@ -3,12 +3,12 @@ package kin.sdk.migration.sample;
 import android.app.Application;
 import android.os.StrictMode;
 import android.os.StrictMode.VmPolicy;
-import kin.sdk.migration.KinSdkVersion;
 import kin.sdk.migration.MigrationManager;
 import kin.sdk.migration.MigrationNetworkInfo;
-import kin.sdk.migration.exception.MigrationInProcessException;
-import kin.sdk.migration.interfaces.IKinClient;
-import kin.sdk.migration.interfaces.IMigrationManagerCallbacks;
+import kin.sdk.migration.common.KinSdkVersion;
+import kin.sdk.migration.common.exception.MigrationInProcessException;
+import kin.sdk.migration.common.interfaces.IKinClient;
+import kin.sdk.migration.common.interfaces.IMigrationManagerCallbacks;
 
 public class KinClientSampleApplication extends Application {
 

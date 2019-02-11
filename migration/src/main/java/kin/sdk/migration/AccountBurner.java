@@ -1,17 +1,17 @@
 package kin.sdk.migration;
 
-import static kin.sdk.migration.Utils.MAX_RETRIES;
+import static kin.sdk.migration.Commons.MAX_RETRIES;
 
 import android.support.annotation.NonNull;
 import kin.sdk.Logger;
 import kin.sdk.migration.bi.IMigrationEventsListener.BurnReason;
 import kin.sdk.migration.bi.IMigrationEventsListener.CheckBurnReason;
-import kin.sdk.migration.core_related.KinAccountCoreImpl;
-import kin.sdk.migration.exception.AccountNotActivatedException;
-import kin.sdk.migration.exception.AccountNotFoundException;
-import kin.sdk.migration.exception.MigrationFailedException;
-import kin.sdk.migration.exception.OperationFailedException;
-import kin.sdk.migration.interfaces.ITransactionId;
+import kin.sdk.migration.common.exception.AccountNotActivatedException;
+import kin.sdk.migration.common.exception.AccountNotFoundException;
+import kin.sdk.migration.common.exception.MigrationFailedException;
+import kin.sdk.migration.common.exception.OperationFailedException;
+import kin.sdk.migration.common.interfaces.ITransactionId;
+import kin.sdk.migration.internal.core_related.KinAccountCoreImpl;
 import org.stellar.sdk.responses.HttpResponseException;
 
 class AccountBurner {

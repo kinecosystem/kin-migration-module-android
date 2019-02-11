@@ -7,10 +7,10 @@ import kin.base.MemoText
 import kin.base.Server
 import kin.sdk.Environment
 import kin.sdk.migration.IntegConsts.TEST_SDK_NETWORK_URL
-import kin.sdk.migration.exception.AccountNotFoundException
-import kin.sdk.migration.exception.InsufficientKinException
-import kin.sdk.migration.interfaces.*
-import kin.sdk.migration.sdk_related.KinClientSdkImpl
+import kin.sdk.migration.common.exception.AccountNotFoundException
+import kin.sdk.migration.common.exception.InsufficientKinException
+import kin.sdk.migration.common.interfaces.*
+import kin.sdk.migration.internal.sdk_related.KinClientSdkImpl
 import org.hamcrest.CoreMatchers.*
 import org.hamcrest.MatcherAssert.assertThat
 import org.junit.*
