@@ -144,7 +144,7 @@ public class MigrationManager {
 			String publicAddress = account.getPublicAddress();
 			try {
 				AccountBurner accountBurner = new AccountBurner(eventsNotifier);
-				BurnReason burnSuccessReason = accountBurner.startBurnAccountProcess(account);
+				BurnReason burnSuccessReason = accountBurner.start(account);
 				switch (burnSuccessReason) {
 					case BURNED:
 					case ALREADY_BURNED:
