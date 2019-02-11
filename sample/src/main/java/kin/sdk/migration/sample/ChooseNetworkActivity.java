@@ -6,8 +6,8 @@ import android.graphics.Paint;
 import android.os.Bundle;
 import android.text.Html;
 import android.widget.TextView;
-import kin.sdk.migration.interfaces.IKinClient;
-import kin.sdk.migration.interfaces.IMigrationManagerCallbacks;
+import kin.sdk.migration.common.interfaces.IKinClient;
+import kin.sdk.migration.common.interfaces.IMigrationManagerCallbacks;
 
 /**
  * User is given a choice to create or use an account on the MAIN or TEST(test) networks

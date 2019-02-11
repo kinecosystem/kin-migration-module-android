@@ -1,1 +1,1 @@
-include ':migration', ':sample', ':core'
+include ':migration', ':sample', ':internal', ':common'

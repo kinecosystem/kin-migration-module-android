@@ -1,7 +1,7 @@
 package kin.sdk.migration.sample;
 
-import kin.sdk.migration.KinSdkVersion;
 import kin.sdk.migration.bi.IMigrationEventsListener;
+import kin.sdk.migration.common.KinSdkVersion;
 
 public class SampleMigrationEventsListener implements IMigrationEventsListener {
 

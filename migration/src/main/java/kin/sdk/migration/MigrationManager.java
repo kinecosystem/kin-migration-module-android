@@ -12,16 +12,17 @@ import kin.sdk.Logger;
 import kin.sdk.migration.bi.IMigrationEventsListener;
 import kin.sdk.migration.bi.IMigrationEventsListener.BurnReason;
 import kin.sdk.migration.bi.IMigrationEventsListener.SelectedSdkReason;
-import kin.sdk.migration.core_related.KinAccountCoreImpl;
-import kin.sdk.migration.core_related.KinClientCoreImpl;
-import kin.sdk.migration.exception.FailedToResolveSdkVersionException;
-import kin.sdk.migration.exception.MigrationFailedException;
-import kin.sdk.migration.exception.MigrationInProcessException;
-import kin.sdk.migration.interfaces.IKinAccount;
-import kin.sdk.migration.interfaces.IKinClient;
-import kin.sdk.migration.interfaces.IKinVersionProvider;
-import kin.sdk.migration.interfaces.IMigrationManagerCallbacks;
-import kin.sdk.migration.sdk_related.KinClientSdkImpl;
+import kin.sdk.migration.common.KinSdkVersion;
+import kin.sdk.migration.common.exception.FailedToResolveSdkVersionException;
+import kin.sdk.migration.common.exception.MigrationFailedException;
+import kin.sdk.migration.common.exception.MigrationInProcessException;
+import kin.sdk.migration.common.interfaces.IKinAccount;
+import kin.sdk.migration.common.interfaces.IKinClient;
+import kin.sdk.migration.common.interfaces.IKinVersionProvider;
+import kin.sdk.migration.common.interfaces.IMigrationManagerCallbacks;
+import kin.sdk.migration.internal.core_related.KinAccountCoreImpl;
+import kin.sdk.migration.internal.core_related.KinClientCoreImpl;
+import kin.sdk.migration.internal.sdk_related.KinClientSdkImpl;
 
 public class MigrationManager {
 

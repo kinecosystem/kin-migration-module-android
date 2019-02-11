@@ -9,13 +9,11 @@ import android.text.TextWatcher;
 import android.util.Log;
 import android.view.View;
 import android.widget.EditText;
-
 import java.math.BigDecimal;
-
-import kin.sdk.migration.interfaces.IKinAccount;
-import kin.sdk.migration.interfaces.ITransactionId;
-import kin.sdk.migration.exception.AccountDeletedException;
-import kin.sdk.migration.exception.OperationFailedException;
+import kin.sdk.migration.common.exception.AccountDeletedException;
+import kin.sdk.migration.common.exception.OperationFailedException;
+import kin.sdk.migration.common.interfaces.IKinAccount;
+import kin.sdk.migration.common.interfaces.ITransactionId;
 import kin.utils.Request;
 
 /**

@@ -7,8 +7,7 @@ import android.support.v7.app.AppCompatActivity;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.inputmethod.InputMethodManager;
-
-import kin.sdk.migration.interfaces.IKinClient;
+import kin.sdk.migration.common.interfaces.IKinClient;
 
 public abstract class BaseActivity extends AppCompatActivity {
 

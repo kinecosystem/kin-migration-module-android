@@ -9,12 +9,12 @@ import kin.sdk.migration.IntegConsts.TEST_SDK_URL_CREATE_ACCOUNT
 import kin.sdk.migration.MigrationManager.KIN_MIGRATION_COMPLETED_KEY
 import kin.sdk.migration.MigrationManager.KIN_MIGRATION_MODULE_PREFERENCE_FILE_KEY
 import kin.sdk.migration.bi.IMigrationEventsListener
-import kin.sdk.migration.core_related.KinAccountCoreImpl
-import kin.sdk.migration.exception.AccountNotFoundException
-import kin.sdk.migration.exception.FailedToResolveSdkVersionException
-import kin.sdk.migration.exception.MigrationInProcessException
-import kin.sdk.migration.exception.TransactionFailedException
-import kin.sdk.migration.interfaces.*
+import kin.sdk.migration.common.exception.AccountNotFoundException
+import kin.sdk.migration.common.exception.FailedToResolveSdkVersionException
+import kin.sdk.migration.common.exception.MigrationInProcessException
+import kin.sdk.migration.common.exception.TransactionFailedException
+import kin.sdk.migration.common.interfaces.*
+import kin.sdk.migration.internal.core_related.KinAccountCoreImpl
 import org.hamcrest.MatcherAssert.assertThat
 import org.hamcrest.Matchers
 import org.hamcrest.Matchers.*
@@ -74,8 +74,8 @@ class MigrationManagerIntegrationTest {
     fun setup() {
         MockitoAnnotations.initMocks(this)
         removeData()
-        migrationManagerOldKin = getNewMigrationManager(IKinVersionProvider { KinSdkVersion.OLD_KIN_SDK })
-        migrationManagerNewKin = getNewMigrationManager(IKinVersionProvider { KinSdkVersion.NEW_KIN_SDK })
+        migrationManagerOldKin = getNewMigrationManager(IKinVersionProvider { kin.sdk.migration.common.KinSdkVersion.OLD_KIN_SDK })
+        migrationManagerNewKin = getNewMigrationManager(IKinVersionProvider { kin.sdk.migration.common.KinSdkVersion.NEW_KIN_SDK })
     }
 
     @After
@@ -95,7 +95,7 @@ class MigrationManagerIntegrationTest {
         // add account only locally but not in the blockchain
         oldKinClient?.addAccount()
         val oldKinAccount = oldKinClient?.getAccount(oldKinClient.accountCount - 1)
-        assertEquals(oldKinAccount?.kinSdkVersion, KinSdkVersion.OLD_KIN_SDK)
+        assertEquals(oldKinAccount?.kinSdkVersion, kin.sdk.migration.common.KinSdkVersion.OLD_KIN_SDK)
     }
 
     @Test
@@ -108,7 +108,7 @@ class MigrationManagerIntegrationTest {
         // starting the migration with a user that only have a local account
         val newKinClient = getKinClientOnNewKinBlockchain()
         val newAccount = newKinClient?.getAccount(newKinClient.accountCount - 1)
-        assertEquals(newAccount?.kinSdkVersion, KinSdkVersion.NEW_KIN_SDK)
+        assertEquals(newAccount?.kinSdkVersion, kin.sdk.migration.common.KinSdkVersion.NEW_KIN_SDK)
     }
 
     @Test
@@ -123,7 +123,7 @@ class MigrationManagerIntegrationTest {
         // starting the migration with a user that have an account also on the blockchain but it is not activated
         val newKinClient = getKinClientOnNewKinBlockchain()
         val newAccount = newKinClient?.getAccount(newKinClient.accountCount - 1)
-        assertEquals(newAccount?.kinSdkVersion, KinSdkVersion.NEW_KIN_SDK)
+        assertEquals(newAccount?.kinSdkVersion, kin.sdk.migration.common.KinSdkVersion.NEW_KIN_SDK)
     }
 
     @Test
@@ -133,7 +133,7 @@ class MigrationManagerIntegrationTest {
             val migrationManager = getNewMigrationManager(IKinVersionProvider {
                 // waiting so it will be in the middle of the migration process while starting another one.
                 Thread.sleep(3000)
-                KinSdkVersion.OLD_KIN_SDK
+                kin.sdk.migration.common.KinSdkVersion.OLD_KIN_SDK
             })
             migrationManager.start(migrationManagerCallbacks)
             // waiting a bit so the started migration will be in the process.
@@ -159,7 +159,7 @@ class MigrationManagerIntegrationTest {
 
             override fun onReady(kinClient: IKinClient) {
                 val account = kinClient.getAccount(kinClient.accountCount - 1)
-                isNewSdk.set(account.kinSdkVersion == KinSdkVersion.NEW_KIN_SDK)
+                isNewSdk.set(account.kinSdkVersion == kin.sdk.migration.common.KinSdkVersion.NEW_KIN_SDK)
                 isAccountAlreadyMigrated.set(isAccountAlreadyMigrated(account.publicAddress))
                 latch.countDown()
             }
@@ -186,7 +186,7 @@ class MigrationManagerIntegrationTest {
         val latch = CountDownLatch(1)
         val newKinClient = getNewKinClientAfterMigration()
         assertTrue(isAccountAlreadyMigrated(newKinClient?.getAccount(newKinClient.accountCount - 1)?.publicAddress))
-        val migrationManager = getNewMigrationManager(IKinVersionProvider { KinSdkVersion.NEW_KIN_SDK })
+        val migrationManager = getNewMigrationManager(IKinVersionProvider { kin.sdk.migration.common.KinSdkVersion.NEW_KIN_SDK })
         migrationManager.start(object : IMigrationManagerCallbacks {
 
             override fun onMigrationStart() {
@@ -194,7 +194,7 @@ class MigrationManagerIntegrationTest {
             }
 
             override fun onReady(kinClient: IKinClient) {
-                isNewSdk.set(kinClient.getAccount(kinClient.accountCount - 1).kinSdkVersion == KinSdkVersion.NEW_KIN_SDK)
+                isNewSdk.set(kinClient.getAccount(kinClient.accountCount - 1).kinSdkVersion == kin.sdk.migration.common.KinSdkVersion.NEW_KIN_SDK)
                 latch.countDown()
             }
 
@@ -293,14 +293,14 @@ class MigrationManagerIntegrationTest {
             fakeKinIssuer.fundWithKin(String.format(TEST_SDK_URL_CREATE_ACCOUNT + fundKinAmount, kinClient?.getAccount(kinClient.accountCount)))
         }
 
-        val migrationManager = getNewMigrationManager(IKinVersionProvider { KinSdkVersion.NEW_KIN_SDK })
+        val migrationManager = getNewMigrationManager(IKinVersionProvider { kin.sdk.migration.common.KinSdkVersion.NEW_KIN_SDK })
         migrationManager.start(object : IMigrationManagerCallbacks {
             override fun onMigrationStart() {
                 migrationDidStart.set(true)
             }
 
             override fun onReady(kinClient: IKinClient) {
-                isNewSdk.set(kinClient.getAccount(kinClient.accountCount - 1).kinSdkVersion == KinSdkVersion.NEW_KIN_SDK)
+                isNewSdk.set(kinClient.getAccount(kinClient.accountCount - 1).kinSdkVersion == kin.sdk.migration.common.KinSdkVersion.NEW_KIN_SDK)
                 latch.countDown()
             }
 
@@ -347,7 +347,7 @@ class MigrationManagerIntegrationTest {
                 }
 
                 override fun onReady(kinClient: IKinClient) {
-                    isNewSdk.set(kinClient.getAccount(kinClient.accountCount - 1).kinSdkVersion == KinSdkVersion.NEW_KIN_SDK)
+                    isNewSdk.set(kinClient.getAccount(kinClient.accountCount - 1).kinSdkVersion == kin.sdk.migration.common.KinSdkVersion.NEW_KIN_SDK)
                     latch.countDown()
                 }
 
@@ -467,7 +467,7 @@ class MigrationManagerIntegrationTest {
             }
 
             override fun onReady(kinClient: IKinClient) {
-                isNewSdk.set(kinClient.getAccount(kinClient.accountCount - 1).kinSdkVersion == KinSdkVersion.NEW_KIN_SDK)
+                isNewSdk.set(kinClient.getAccount(kinClient.accountCount - 1).kinSdkVersion == kin.sdk.migration.common.KinSdkVersion.NEW_KIN_SDK)
                 newKinClient = kinClient
                 latch.countDown()
             }
@@ -494,7 +494,7 @@ class MigrationManagerIntegrationTest {
             }
 
             override fun onReady(kinClient: IKinClient) {
-                isOldSdk.set(kinClient.getAccount(kinClient.accountCount - 1).kinSdkVersion == KinSdkVersion.OLD_KIN_SDK)
+                isOldSdk.set(kinClient.getAccount(kinClient.accountCount - 1).kinSdkVersion == kin.sdk.migration.common.KinSdkVersion.OLD_KIN_SDK)
                 oldKinClient = kinClient
                 latch.countDown()
             }

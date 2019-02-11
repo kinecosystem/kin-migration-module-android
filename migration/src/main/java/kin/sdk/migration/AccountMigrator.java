@@ -1,6 +1,6 @@
 package kin.sdk.migration;
 
-import static kin.sdk.migration.Utils.MAX_RETRIES;
+import static kin.sdk.migration.Commons.MAX_RETRIES;
 
 import android.support.annotation.NonNull;
 import com.google.gson.Gson;
@@ -12,7 +12,8 @@ import java.util.concurrent.TimeUnit;
 import kin.sdk.Logger;
 import kin.sdk.migration.bi.IMigrationEventsListener.RequestAccountMigrationSuccessReason;
 import kin.sdk.migration.bi.IMigrationEventsListener.SelectedSdkReason;
-import kin.sdk.migration.exception.MigrationFailedException;
+import kin.sdk.migration.common.KinSdkVersion;
+import kin.sdk.migration.common.exception.MigrationFailedException;
 import okhttp3.Interceptor;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;

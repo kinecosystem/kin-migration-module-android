@@ -36,8 +36,8 @@ android {
 
 dependencies {
     implementation supportDependencies.supportAnnotations
-    implementation project(":core")
-    api 'com.github.kinecosystem:kin-utils-android:1.1'
+    implementation project(':internal')
+    api project(":common")
 
     testImplementation testingDependencies.junit
     testImplementation testingDependencies.mockito

@@ -1,8 +1,8 @@
 package kin.sdk.migration
 
 import kin.sdk.migration.bi.IMigrationEventsListener
-import kin.sdk.migration.core_related.KinAccountCoreImpl
-import kin.sdk.migration.interfaces.ITransactionId
+import kin.sdk.migration.common.interfaces.ITransactionId
+import kin.sdk.migration.internal.core_related.KinAccountCoreImpl
 import org.hamcrest.MatcherAssert.assertThat
 import org.hamcrest.Matchers.equalTo
 import org.junit.After

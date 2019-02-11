@@ -9,11 +9,10 @@ import android.text.TextWatcher;
 import android.view.View;
 import android.widget.EditText;
 import android.widget.TextView;
-
-import kin.sdk.migration.interfaces.IKinAccount;
-import kin.sdk.migration.exception.AccountDeletedException;
-import kin.sdk.migration.exception.CryptoException;
-import kin.sdk.migration.exception.OperationFailedException;
+import kin.sdk.migration.common.exception.AccountDeletedException;
+import kin.sdk.migration.common.exception.CryptoException;
+import kin.sdk.migration.common.exception.OperationFailedException;
+import kin.sdk.migration.common.interfaces.IKinAccount;
 
 /**
  * Enter passphrase to generate Json content that can be used to access the current account

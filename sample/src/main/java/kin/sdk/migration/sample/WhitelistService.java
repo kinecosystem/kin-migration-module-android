@@ -3,24 +3,21 @@ package kin.sdk.migration.sample;
 import android.os.Handler;
 import android.os.Looper;
 import android.support.annotation.NonNull;
-
-import org.json.JSONException;
-import org.json.JSONObject;
-
 import java.io.IOException;
 import java.util.concurrent.TimeUnit;
-
-import kin.sdk.migration.exception.WhitelistTransactionFailedException;
-import kin.sdk.migration.interfaces.IWhitelistableTransaction;
-import kin.sdk.migration.interfaces.IWhitelistService;
-import kin.sdk.migration.interfaces.IWhitelistServiceCallbacks;
-import kin.sdk.migration.sdk_related.WhitelistResult;
+import kin.sdk.migration.common.WhitelistResult;
+import kin.sdk.migration.common.exception.WhitelistTransactionFailedException;
+import kin.sdk.migration.common.interfaces.IWhitelistService;
+import kin.sdk.migration.common.interfaces.IWhitelistServiceCallbacks;
+import kin.sdk.migration.common.interfaces.IWhitelistableTransaction;
 import okhttp3.MediaType;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.RequestBody;
 import okhttp3.Response;
 import okhttp3.ResponseBody;
+import org.json.JSONException;
+import org.json.JSONObject;
 
 class WhitelistService implements IWhitelistService {
 
