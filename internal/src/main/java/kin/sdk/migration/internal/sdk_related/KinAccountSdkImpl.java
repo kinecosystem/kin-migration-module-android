@@ -2,8 +2,10 @@ package kin.sdk.migration.internal.sdk_related;
 
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
+
 import java.math.BigDecimal;
 import java.util.concurrent.Callable;
+
 import kin.sdk.Balance;
 import kin.sdk.EventListener;
 import kin.sdk.KinAccount;
@@ -212,4 +214,9 @@ public class KinAccountSdkImpl implements IKinAccount {
         return getPublicAddress().equals(account.getPublicAddress());
     }
 
+    @Override
+    public int hashCode() {
+        return kinAccount.getPublicAddress() != null ?
+                kinAccount.getPublicAddress().hashCode() : super.hashCode();
+    }
 }

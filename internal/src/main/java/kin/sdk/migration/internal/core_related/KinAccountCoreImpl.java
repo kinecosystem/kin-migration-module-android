@@ -266,4 +266,10 @@ public class KinAccountCoreImpl implements IKinAccount {
         return getPublicAddress().equals(account.getPublicAddress());
     }
 
+    @Override
+    public int hashCode() {
+        return kinAccount.getPublicAddress() != null ?
+                kinAccount.getPublicAddress().hashCode() : super.hashCode();
+    }
+
 }
