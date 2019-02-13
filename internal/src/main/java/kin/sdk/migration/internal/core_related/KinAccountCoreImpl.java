@@ -250,4 +250,20 @@ public class KinAccountCoreImpl implements IKinAccount {
         return KinSdkVersion.OLD_KIN_SDK;
     }
 
+    @SuppressWarnings("SimplifiableIfStatement")
+    @Override
+    public boolean equals(Object obj) {
+        if (this == obj) {
+            return true;
+        }
+        if (obj == null || getClass() != obj.getClass()) {
+            return false;
+        }
+        KinAccount account = (KinAccount) obj;
+        if (getPublicAddress() == null || account.getPublicAddress() == null) {
+            return false;
+        }
+        return getPublicAddress().equals(account.getPublicAddress());
+    }
+
 }
