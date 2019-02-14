@@ -207,7 +207,7 @@ public class KinAccountSdkImpl implements IKinAccount {
         if (obj == null || getClass() != obj.getClass()) {
             return false;
         }
-        KinAccount account = (KinAccount) obj;
+        KinAccountSdkImpl account = (KinAccountSdkImpl) obj;
         if (getPublicAddress() == null || account.getPublicAddress() == null) {
             return false;
         }

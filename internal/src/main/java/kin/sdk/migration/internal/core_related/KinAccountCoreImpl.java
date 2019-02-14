@@ -259,7 +259,7 @@ public class KinAccountCoreImpl implements IKinAccount {
         if (obj == null || getClass() != obj.getClass()) {
             return false;
         }
-        KinAccount account = (KinAccount) obj;
+        KinAccountCoreImpl account = (KinAccountCoreImpl) obj;
         if (getPublicAddress() == null || account.getPublicAddress() == null) {
             return false;
         }
