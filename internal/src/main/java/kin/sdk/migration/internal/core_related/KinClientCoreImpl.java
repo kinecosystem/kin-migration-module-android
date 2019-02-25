@@ -48,7 +48,7 @@ public class KinClientCoreImpl implements IKinClient {
     @Override
     public IKinAccount getAccount(int index) {
         KinAccount kinCoreAccount = kinClient.getAccount(index);
-        return new KinAccountCoreImpl(appId, kinCoreAccount);
+		return kinCoreAccount != null ? new KinAccountCoreImpl(appId, kinCoreAccount) : null;
     }
 
     @Override
