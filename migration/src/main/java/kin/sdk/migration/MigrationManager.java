@@ -66,6 +66,10 @@ public class MigrationManager {
 	}
 
 	/**
+	 * @param publicAddress is the address of the active account in which this method is check if it is already migrated.
+	 * If not migrated then returning the KinClient object running on the old sdk, otherwise returning the KinClient object
+	 * which runs on the new sdk.
+	 * If publicAddress is null or empty or not found then returning the KinClient which runs on the old sdk.
 	 * @return the current kin client.
 	 */
 	public IKinClient getCurrentKinClient(String publicAddress) {
@@ -87,7 +91,7 @@ public class MigrationManager {
 	 * class.</p>
 	 *
 	 * @param migrationManagerCallbacks is a listener so the caller can get a callback for completion or error(on the UI
-	 * thread).
+	 * 0thread).
 	 * @throws MigrationInProcessException is thrown in case this method is called while it is not finished.
 	 */
 	public void start(final IMigrationManagerCallbacks migrationManagerCallbacks)
@@ -275,7 +279,7 @@ public class MigrationManager {
 		handler.post(new Runnable() {
 			@Override
 			public void run() {
-				if (needToSave && publicAddress != null && !publicAddress.isEmpty()) {
+				if (needToSave && kinClient.hasAccount() && publicAddress != null && !publicAddress.isEmpty()) {
 					saveMigrationCompleted(publicAddress);
 				}
 				isMigrationInProcess.set(false);
