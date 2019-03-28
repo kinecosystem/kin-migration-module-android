@@ -66,21 +66,24 @@ public class MigrationManager {
 	}
 
 	/**
-	 * @param publicAddress is the address of the active account in which this method is check if it is already migrated.
-	 * If not migrated then returning the KinClient object running on the old sdk, otherwise returning the KinClient object
-	 * which runs on the new sdk.
-	 * If publicAddress is null or empty or not found then returning the KinClient which runs on the old sdk.
+	 * @param sdkVersion is the sdk version on which the KinClient should run.
+	 * This param should be the same in your servers
 	 * @return the current kin client.
 	 */
-	public IKinClient getCurrentKinClient(String publicAddress) {
-		IKinClient kinClient = initNewKin();
-		if (!isMigrationAlreadyCompleted(publicAddress)) {
-			kinClient = initKinCore();
-		}
-		Logger.d("getLastKinClient sdkVersion = " +
-			(kinClient instanceof KinClientCoreImpl ? KinSdkVersion.OLD_KIN_SDK.getVersion()
-				: KinSdkVersion.NEW_KIN_SDK.getVersion()));
-		return kinClient;
+	public IKinClient getCurrentKinClient(KinSdkVersion sdkVersion) {
+		Logger.d("getLastKinClient sdkVersion = " + sdkVersion.getVersion());
+		return sdkVersion == KinSdkVersion.NEW_KIN_SDK ? initNewKin() : initKinCore();
+	}
+
+	/**
+	 * Check locally if the account is already migrated. if account is null, empty or not found then this method will
+	 * return false.
+	 *
+	 * @param publicAddress is the address of the account to check
+	 * @return true if account is already migrated, false otherwise.
+	 */
+	public boolean accountAlreadyMigrated(String publicAddress) {
+		return isMigrationAlreadyCompleted(publicAddress);
 	}
 
 	/**

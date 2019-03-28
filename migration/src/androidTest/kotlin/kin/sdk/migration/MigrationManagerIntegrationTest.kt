@@ -44,9 +44,9 @@ class MigrationManagerIntegrationTest {
     // exceed their declared trust limit for the asset being sent.
     private val LINE_FULL_RESULT_CODE = "op_line_full"
 
-    private val timeoutDurationSecondsLong: Long = 45 //TODO change to 15
-    private val timeoutDurationSecondsShort: Long = 30 //TODO change to 10
-    private val timeoutDurationSecondsVeryShort: Long = 20 //TODO change to 2
+    private val timeoutDurationSecondsLong: Long = 450 //TODO change to 15
+    private val timeoutDurationSecondsShort: Long = 300 //TODO change to 10
+    private val timeoutDurationSecondsVeryShort: Long = 200 //TODO change to 2
     private lateinit var migrationManagerOldKin: MigrationManager
     private lateinit var migrationManagerNewKin: MigrationManager
     private val networkInfo = MigrationNetworkInfo(IntegConsts.TEST_CORE_NETWORK_URL, IntegConsts.TEST_CORE_NETWORK_ID, IntegConsts.TEST_SDK_NETWORK_URL,
@@ -185,9 +185,10 @@ class MigrationManagerIntegrationTest {
         var error: Error? = null
         val latch = CountDownLatch(1)
         val newKinClient = getNewKinClientAfterMigration()
-        assertTrue(isAccountAlreadyMigrated(newKinClient?.getAccount(newKinClient.accountCount - 1)?.publicAddress))
+        val publicAddress = newKinClient?.getAccount(newKinClient.accountCount - 1)?.publicAddress
+        assertTrue(isAccountAlreadyMigrated(publicAddress))
         val migrationManager = getNewMigrationManager(IKinVersionProvider { kin.sdk.migration.common.KinSdkVersion.NEW_KIN_SDK })
-        migrationManager.start(object : IMigrationManagerCallbacks {
+        migrationManager.start(publicAddress, object : IMigrationManagerCallbacks {
 
             override fun onMigrationStart() {
                 migrationDidStart.set(true)
@@ -219,7 +220,7 @@ class MigrationManagerIntegrationTest {
         val account = oldKinClient?.addAccount()
         createAccount(account)
         val migrationManager = getNewMigrationManager(IKinVersionProvider { throw FailedToResolveSdkVersionException() })
-        migrationManager.start(object : IMigrationManagerCallbacks {
+        migrationManager.start(account?.publicAddress, object : IMigrationManagerCallbacks {
             override fun onMigrationStart() {
                 migrationDidStart.set(true)
             }
@@ -289,12 +290,13 @@ class MigrationManagerIntegrationTest {
         val latch = CountDownLatch(1)
         val kinClient = getNewKinClientAfterMigration()
         removeData()
+        val account = kinClient?.getAccount(kinClient.accountCount)
         if (withBalance) { //TODO do i really want to fund the new migrated account???
-            fakeKinIssuer.fundWithKin(String.format(TEST_SDK_URL_CREATE_ACCOUNT + fundKinAmount, kinClient?.getAccount(kinClient.accountCount)))
+            fakeKinIssuer.fundWithKin(String.format(TEST_SDK_URL_CREATE_ACCOUNT + fundKinAmount, account))
         }
 
         val migrationManager = getNewMigrationManager(IKinVersionProvider { kin.sdk.migration.common.KinSdkVersion.NEW_KIN_SDK })
-        migrationManager.start(object : IMigrationManagerCallbacks {
+        migrationManager.start(account?.publicAddress, object : IMigrationManagerCallbacks {
             override fun onMigrationStart() {
                 migrationDidStart.set(true)
             }
@@ -341,7 +343,7 @@ class MigrationManagerIntegrationTest {
         if (account is KinAccountCoreImpl) {
             val latch = CountDownLatch(1)
             account.sendBurnTransactionSync(account.publicAddress.orEmpty())
-            migrationManagerNewKin.start(object : IMigrationManagerCallbacks {
+            migrationManagerNewKin.start(account?.publicAddress, object : IMigrationManagerCallbacks {
                 override fun onMigrationStart() {
                     migrationDidStart.set(true)
                 }
@@ -424,7 +426,7 @@ class MigrationManagerIntegrationTest {
         // Activate the account.
         activateAccount(account)
         // starting the migration with a user that have an account which is also activated so migration should succeed.
-        migrationManagerNewKin.start(migrationManagerCallbacks)
+        migrationManagerNewKin.start(account?.publicAddress, migrationManagerCallbacks)
     }
 
     private fun isAccountAlreadyMigrated(publicAddress: String?): Boolean {
@@ -494,7 +496,9 @@ class MigrationManagerIntegrationTest {
             }
 
             override fun onReady(kinClient: IKinClient) {
-                isOldSdk.set(kinClient.getAccount(kinClient.accountCount - 1).kinSdkVersion == kin.sdk.migration.common.KinSdkVersion.OLD_KIN_SDK)
+                if (kinClient.hasAccount()) {
+                    isOldSdk.set(kinClient.getAccount(kinClient.accountCount - 1).kinSdkVersion == kin.sdk.migration.common.KinSdkVersion.OLD_KIN_SDK)
+                }
                 oldKinClient = kinClient
                 latch.countDown()
             }
@@ -505,7 +509,17 @@ class MigrationManagerIntegrationTest {
         })
         assertTrue(latch.await(timeoutDurationSecondsVeryShort, TimeUnit.SECONDS))
         assertTrue(!migrationDidStart.get())
-        assertTrue(isOldSdk.get())
+
+//        oldKinClient?.let {
+//            if (it.hasAccount()) {
+//                assertTrue(isOldSdk.get())
+//            }
+//        }
+
+        if (oldKinClient?.hasAccount() == true) {
+            assertTrue(isOldSdk.get())
+        }
+
         assertThat(error?.exception, Matchers.nullValue())
         return oldKinClient
     }
