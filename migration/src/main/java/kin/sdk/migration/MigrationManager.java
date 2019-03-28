@@ -5,7 +5,6 @@ import android.content.SharedPreferences;
 import android.os.Handler;
 import android.os.Looper;
 import android.support.annotation.NonNull;
-import android.support.annotation.Nullable;
 import android.text.TextUtils;
 import java.util.concurrent.atomic.AtomicBoolean;
 import kin.core.ServiceProvider;
@@ -93,7 +92,7 @@ public class MigrationManager {
 	 */
 	public void start(final IMigrationManagerCallbacks migrationManagerCallbacks)
 		throws MigrationInProcessException {
-		start(migrationManagerCallbacks, null);
+		start(null, migrationManagerCallbacks);
 	}
 
 	/**
@@ -102,12 +101,12 @@ public class MigrationManager {
 	 * <p><b>Note:</b> If all the migration process will be completed then this method minimum time is 6 seconds.</p>
 	 * <p><b>Note:</b> This method should be called only once, if required more then create another instance of this
 	 * class.</p>
-	 *
+	 * @param publicAddress the address of the account to migrate.
 	 * @param migrationManagerCallbacks is a listener so the caller can get a callback for completion or error(on the UI
 	 * thread).
 	 * @throws MigrationInProcessException is thrown in case this method is called while it is not finished.
 	 */
-	public void start(final IMigrationManagerCallbacks migrationManagerCallbacks, final @Nullable String publicAddress)
+	public void start(final String publicAddress, final IMigrationManagerCallbacks migrationManagerCallbacks)
 		throws MigrationInProcessException {
 		eventsNotifier.onMethodStarted();
 		if (isMigrationInProcess.compareAndSet(false, true)) {
