@@ -44,9 +44,9 @@ class MigrationManagerIntegrationTest {
     // exceed their declared trust limit for the asset being sent.
     private val LINE_FULL_RESULT_CODE = "op_line_full"
 
-    private val timeoutDurationSecondsLong: Long = 450 //TODO change to 15
-    private val timeoutDurationSecondsShort: Long = 300 //TODO change to 10
-    private val timeoutDurationSecondsVeryShort: Long = 200 //TODO change to 2
+    private val timeoutDurationSecondsLong: Long = 20
+    private val timeoutDurationSecondsShort: Long = 10
+    private val timeoutDurationSecondsVeryShort: Long = 2
     private lateinit var migrationManagerOldKin: MigrationManager
     private lateinit var migrationManagerNewKin: MigrationManager
     private val networkInfo = MigrationNetworkInfo(IntegConsts.TEST_CORE_NETWORK_URL, IntegConsts.TEST_CORE_NETWORK_ID, IntegConsts.TEST_SDK_NETWORK_URL,
@@ -509,12 +509,6 @@ class MigrationManagerIntegrationTest {
         })
         assertTrue(latch.await(timeoutDurationSecondsVeryShort, TimeUnit.SECONDS))
         assertTrue(!migrationDidStart.get())
-
-//        oldKinClient?.let {
-//            if (it.hasAccount()) {
-//                assertTrue(isOldSdk.get())
-//            }
-//        }
 
         if (oldKinClient?.hasAccount() == true) {
             assertTrue(isOldSdk.get())
