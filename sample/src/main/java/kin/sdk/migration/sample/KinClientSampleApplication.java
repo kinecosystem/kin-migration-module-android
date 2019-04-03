@@ -54,8 +54,13 @@ public class KinClientSampleApplication extends Application {
         MigrationManager migrationManager = new MigrationManager(this, appId, migrationNetworkInfo,
                 () -> sdkVersion, new SampleMigrationEventsListener());
         migrationManager.enableLogs(true);
+        kinClient = migrationManager.getKinClient(sdkVersion);
         try {
-            migrationManager.start(new IMigrationManagerCallbacks() {
+            String publicAddress = null;
+            if (kinClient != null && kinClient.hasAccount()) {
+                publicAddress = kinClient.getAccount(0).getPublicAddress();
+            }
+            migrationManager.start(publicAddress, new IMigrationManagerCallbacks() {
 
                 @Override
                 public void onMigrationStart() {

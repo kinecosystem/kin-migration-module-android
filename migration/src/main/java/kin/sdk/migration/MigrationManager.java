@@ -14,6 +14,7 @@ import kin.sdk.migration.bi.IMigrationEventsListener;
 import kin.sdk.migration.bi.IMigrationEventsListener.BurnReason;
 import kin.sdk.migration.bi.IMigrationEventsListener.SelectedSdkReason;
 import kin.sdk.migration.common.KinSdkVersion;
+import kin.sdk.migration.common.exception.AccountNotFoundInListOfAccounts;
 import kin.sdk.migration.common.exception.FailedToResolveSdkVersionException;
 import kin.sdk.migration.common.exception.MigrationFailedException;
 import kin.sdk.migration.common.exception.MigrationInProcessException;
@@ -66,8 +67,8 @@ public class MigrationManager {
 	}
 
 	/**
-	 * @param sdkVersion is the sdk version on which the KinClient should run.
-	 * The sdk version should be the same as in your servers.
+	 * @param sdkVersion is the sdk version on which the KinClient should run. The sdk version should be the same as in
+	 * your servers.
 	 * @return the kin client.
 	 */
 	public IKinClient getKinClient(KinSdkVersion sdkVersion) {
@@ -76,8 +77,8 @@ public class MigrationManager {
 	}
 
 	/**
-	 * Check locally if the account is already migrated.
-	 * if the account is null, empty or not found then this method will return false.
+	 * Check locally if the account is already migrated. if the account is null, empty or not found then this method
+	 * will return false.
 	 *
 	 * @param publicAddress is the address of the account to check.
 	 * @return true if account is already migrated(checking this locally), false otherwise.
@@ -108,6 +109,7 @@ public class MigrationManager {
 	 * <p><b>Note:</b> If all the migration process will be completed then this method minimum time is 6 seconds.</p>
 	 * <p><b>Note:</b> This method should be called only once, if required more then create another instance of this
 	 * class.</p>
+	 *
 	 * @param publicAddress the address of the account to migrate.
 	 * @param migrationManagerCallbacks is a listener so the caller can get a callback for completion or error(on the UI
 	 * thread).
@@ -252,7 +254,7 @@ public class MigrationManager {
 	private boolean isMigrationAlreadyCompleted(String publicAddress) {
 		// get migration completion status from the persistent state.
 		boolean isMigrationAlreadyCompleted = false;
-		if (publicAddress != null && !publicAddress.isEmpty()) {
+		if (!TextUtils.isEmpty(publicAddress)) {
 			SharedPreferences sharedPreferences = getSharedPreferences();
 			isMigrationAlreadyCompleted = sharedPreferences
 				.getBoolean(KIN_MIGRATION_COMPLETED_KEY + publicAddress, false);
@@ -282,15 +284,43 @@ public class MigrationManager {
 		handler.post(new Runnable() {
 			@Override
 			public void run() {
-				if (needToSave && kinClient.hasAccount() && publicAddress != null && !publicAddress.isEmpty()) {
-					saveMigrationCompleted(publicAddress);
-				}
 				isMigrationInProcess.set(false);
-				if (migrationManagerCallbacks != null) {
-					migrationManagerCallbacks.onReady(kinClient);
+				boolean publicAddressIsEmpty = TextUtils.isEmpty(publicAddress);
+				// If no accounts and no public address then that mean we can supply a kinClient object to begin with.
+				// Or if the account has been found in the list of account then we can supply that kinClient which includes this account.
+				if (!kinClient.hasAccount() && publicAddressIsEmpty
+					|| isAccountFoundInListOfAccounts(kinClient, publicAddress)) {
+					if (needToSave && !publicAddressIsEmpty) {
+						saveMigrationCompleted(publicAddress);
+					}
+					if (migrationManagerCallbacks != null) {
+						migrationManagerCallbacks.onReady(kinClient);
+					}
+					// If the account wasn't found in the list of account then we throw the next exception
+				} else {
+					fireOnError(migrationManagerCallbacks, new AccountNotFoundInListOfAccounts());
 				}
 			}
 		});
+	}
+
+	private boolean isAccountFoundInListOfAccounts(IKinClient kinClient, String publicAddress) {
+		boolean isAccountFoundInListOfAccounts = false;
+		// If we have at least one account and they didn't supply public address or if we have at least one account
+		// and they supply a public address but it wasn't found in the list of accounts twe will return false.
+		if (kinClient.hasAccount() && !TextUtils.isEmpty(publicAddress)) {
+			if (!TextUtils.isEmpty(publicAddress)) {
+				int numOfAccounts = kinClient.getAccountCount();
+				for (int i = 0; i < numOfAccounts; i++) {
+					IKinAccount account = kinClient.getAccount(i);
+					if (account != null && account.getPublicAddress().equals(publicAddress)) {
+						isAccountFoundInListOfAccounts = true;
+						break;
+					}
+				}
+			}
+		}
+		return isAccountFoundInListOfAccounts;
 	}
 
 }
