@@ -5,6 +5,7 @@ import android.content.SharedPreferences;
 import android.os.Handler;
 import android.os.Looper;
 import android.support.annotation.NonNull;
+import android.support.annotation.Nullable;
 import android.text.TextUtils;
 import java.util.concurrent.atomic.AtomicBoolean;
 import kin.core.ServiceProvider;
@@ -14,7 +15,7 @@ import kin.sdk.migration.bi.IMigrationEventsListener;
 import kin.sdk.migration.bi.IMigrationEventsListener.BurnReason;
 import kin.sdk.migration.bi.IMigrationEventsListener.SelectedSdkReason;
 import kin.sdk.migration.common.KinSdkVersion;
-import kin.sdk.migration.common.exception.AccountNotFoundInListOfAccounts;
+import kin.sdk.migration.common.exception.AccountNotFoundLocallyException;
 import kin.sdk.migration.common.exception.FailedToResolveSdkVersionException;
 import kin.sdk.migration.common.exception.MigrationFailedException;
 import kin.sdk.migration.common.exception.MigrationInProcessException;
@@ -109,13 +110,18 @@ public class MigrationManager {
 	 * <p><b>Note:</b> If all the migration process will be completed then this method minimum time is 6 seconds.</p>
 	 * <p><b>Note:</b> This method should be called only once, if required more then create another instance of this
 	 * class.</p>
+	 *<p><b>Note:</b> if the accounts(locally) are not empty and the supplied public address couldn't be found in them
+	 *  or if the accounts are empty and the public address is not empty we will fire the onError of the callback
+	 * 	with {@link AccountNotFoundLocallyException}
 	 *
 	 * @param publicAddress the address of the account to migrate.
 	 * @param migrationManagerCallbacks is a listener so the caller can get a callback for completion or error(on the UI
 	 * thread).
+	 *
+	 *
 	 * @throws MigrationInProcessException is thrown in case this method is called while it is not finished.
 	 */
-	public void start(final String publicAddress, final IMigrationManagerCallbacks migrationManagerCallbacks)
+	public void start(@Nullable final String publicAddress, final IMigrationManagerCallbacks migrationManagerCallbacks)
 		throws MigrationInProcessException {
 		eventsNotifier.onMethodStarted();
 		if (isMigrationInProcess.compareAndSet(false, true)) {
@@ -135,38 +141,90 @@ public class MigrationManager {
 	private void startMigrationProcess(final IMigrationManagerCallbacks migrationManagerCallbacks,
 		final String publicAddress) {
 		final IKinClient newKinClient = initNewKin();
-		if (isMigrationAlreadyCompleted(publicAddress)) {
-			eventsNotifier.onCallbackReady(KinSdkVersion.NEW_KIN_SDK, SelectedSdkReason.ALREADY_MIGRATED);
-			fireOnReady(migrationManagerCallbacks, newKinClient, publicAddress, false);
-		} else {
-			try {
-				eventsNotifier.onVersionCheckStarted();
-				KinSdkVersion kinSdkVersion = kinVersionProvider.getKinSdkVersion();
-				if (kinSdkVersion == null) {
-					Exception failure = new FailedToResolveSdkVersionException();
-					eventsNotifier.onVersionCheckFailed(failure);
-					fireOnError(migrationManagerCallbacks, failure);
-				} else {
-					if (kinSdkVersion == KinSdkVersion.NEW_KIN_SDK) {
-						eventsNotifier.onVersionCheckSucceeded(KinSdkVersion.NEW_KIN_SDK);
-						burnAndMigrateAccount(newKinClient, publicAddress, migrationManagerCallbacks);
+		if (validatePublicAddress(publicAddress, newKinClient, migrationManagerCallbacks)) {
+			if (isMigrationAlreadyCompleted(publicAddress)) {
+				eventsNotifier.onCallbackReady(KinSdkVersion.NEW_KIN_SDK, SelectedSdkReason.ALREADY_MIGRATED);
+				fireOnReady(migrationManagerCallbacks, newKinClient, publicAddress, false);
+			} else {
+				try {
+					eventsNotifier.onVersionCheckStarted();
+					KinSdkVersion kinSdkVersion = kinVersionProvider.getKinSdkVersion();
+					if (kinSdkVersion == null) {
+						Exception failure = new FailedToResolveSdkVersionException();
+						eventsNotifier.onVersionCheckFailed(failure);
+						fireOnError(migrationManagerCallbacks, failure);
 					} else {
-						eventsNotifier.onVersionCheckSucceeded(KinSdkVersion.OLD_KIN_SDK);
-						eventsNotifier.onCallbackReady(KinSdkVersion.OLD_KIN_SDK, SelectedSdkReason.API_CHECK);
-						fireOnReady(migrationManagerCallbacks, initKinCore(), publicAddress, false);
+						if (kinSdkVersion == KinSdkVersion.NEW_KIN_SDK) {
+							eventsNotifier.onVersionCheckSucceeded(KinSdkVersion.NEW_KIN_SDK);
+							burnAndMigrateAccount(newKinClient, publicAddress, migrationManagerCallbacks);
+						} else {
+							eventsNotifier.onVersionCheckSucceeded(KinSdkVersion.OLD_KIN_SDK);
+							eventsNotifier.onCallbackReady(KinSdkVersion.OLD_KIN_SDK, SelectedSdkReason.API_CHECK);
+							fireOnReady(migrationManagerCallbacks, initKinCore(), publicAddress, false);
+						}
 					}
+				} catch (FailedToResolveSdkVersionException e) {
+					eventsNotifier.onVersionCheckFailed(e);
+					fireOnError(migrationManagerCallbacks, e);
 				}
-			} catch (FailedToResolveSdkVersionException e) {
-				eventsNotifier.onVersionCheckFailed(e);
-				fireOnError(migrationManagerCallbacks, e);
 			}
 		}
+	}
+
+	/**
+	 * Return true if can continue with the migration process because everything is ok with the supplied public address,
+	 * false otherwise
+	 */
+	private boolean validatePublicAddress(String publicAddress, IKinClient newKinClient,
+		IMigrationManagerCallbacks migrationManagerCallbacks) {
+		boolean validatePublicAddress = true;
+		boolean publicAddressIsEmpty = TextUtils.isEmpty(publicAddress);
+		boolean hasAccounts = newKinClient.hasAccount();
+		AccountNotFoundLocallyException accountNotFoundLocallyException = new AccountNotFoundLocallyException();
+
+		// Fire the error(and return false) in the next 3 cases:
+		// 1. If the list of accounts and public address are not empty and the public address is not found is the list of accounts.
+		// 1. If the list of accounts are not empty but the public address is empty.
+		// 2. If the list of accounts are empty but the public address is not empty.
+		// Return true in the those cases:
+		// 1. The account has been found in the list of account.
+		// 2. There are no account and no public address, which means that its probably a new user.
+		if (hasAccounts && !publicAddressIsEmpty) {
+			if (!isAccountFoundInListOfAccounts(newKinClient, publicAddress)) {
+				validatePublicAddress = false;
+				fireOnError(migrationManagerCallbacks, accountNotFoundLocallyException);
+			}
+			// ignore the warning because it is more readable and understandable this way
+		} else if ((hasAccounts && publicAddressIsEmpty) || (!hasAccounts && !publicAddressIsEmpty)) {
+			validatePublicAddress = false;
+			fireOnError(migrationManagerCallbacks, accountNotFoundLocallyException);
+		}
+		return validatePublicAddress;
+	}
+
+	private boolean isAccountFoundInListOfAccounts(IKinClient kinClient, String publicAddress) {
+		boolean isAccountFoundInListOfAccounts = false;
+		// If we have at least one account and they didn't supply public address or if we have at least one account
+		// and they supply a public address but it wasn't found in the list of accounts twe will return false.
+		if (kinClient.hasAccount() && !TextUtils.isEmpty(publicAddress)) {
+			if (!TextUtils.isEmpty(publicAddress)) {
+				int numOfAccounts = kinClient.getAccountCount();
+				for (int i = 0; i < numOfAccounts; i++) {
+					IKinAccount account = kinClient.getAccount(i);
+					if (account != null && account.getPublicAddress().equals(publicAddress)) {
+						isAccountFoundInListOfAccounts = true;
+						break;
+					}
+				}
+			}
+		}
+		return isAccountFoundInListOfAccounts;
 	}
 
 	private void burnAndMigrateAccount(final IKinClient newKinClient, String publicAddress,
 		final IMigrationManagerCallbacks migrationManagerCallbacks) {
 		KinClientCoreImpl kinClientCore = initKinCore();
-		if (kinClientCore.hasAccount() && publicAddress != null && !publicAddress.isEmpty()) {
+		if (kinClientCore.hasAccount() && !TextUtils.isEmpty(publicAddress)) {
 			postMigrationStart(migrationManagerCallbacks);
 			KinAccountCoreImpl account = getKinAccountCore(kinClientCore, publicAddress);
 			try {
@@ -285,42 +343,15 @@ public class MigrationManager {
 			@Override
 			public void run() {
 				isMigrationInProcess.set(false);
-				boolean publicAddressIsEmpty = TextUtils.isEmpty(publicAddress);
 				// If no accounts and no public address then that mean we can supply a kinClient object to begin with.
 				// Or if the account has been found in the list of account then we can supply that kinClient which includes this account.
-				if (!kinClient.hasAccount() && publicAddressIsEmpty
-					|| isAccountFoundInListOfAccounts(kinClient, publicAddress)) {
-					if (needToSave && !publicAddressIsEmpty) {
-						saveMigrationCompleted(publicAddress);
-					}
-					if (migrationManagerCallbacks != null) {
-						migrationManagerCallbacks.onReady(kinClient);
-					}
-					// If the account wasn't found in the list of account then we throw the next exception
-				} else {
-					fireOnError(migrationManagerCallbacks, new AccountNotFoundInListOfAccounts());
+				if (needToSave && kinClient.hasAccount() && !TextUtils.isEmpty(publicAddress)) {
+					saveMigrationCompleted(publicAddress);
+				}
+				if (migrationManagerCallbacks != null) {
+					migrationManagerCallbacks.onReady(kinClient);
 				}
 			}
 		});
 	}
-
-	private boolean isAccountFoundInListOfAccounts(IKinClient kinClient, String publicAddress) {
-		boolean isAccountFoundInListOfAccounts = false;
-		// If we have at least one account and they didn't supply public address or if we have at least one account
-		// and they supply a public address but it wasn't found in the list of accounts twe will return false.
-		if (kinClient.hasAccount() && !TextUtils.isEmpty(publicAddress)) {
-			if (!TextUtils.isEmpty(publicAddress)) {
-				int numOfAccounts = kinClient.getAccountCount();
-				for (int i = 0; i < numOfAccounts; i++) {
-					IKinAccount account = kinClient.getAccount(i);
-					if (account != null && account.getPublicAddress().equals(publicAddress)) {
-						isAccountFoundInListOfAccounts = true;
-						break;
-					}
-				}
-			}
-		}
-		return isAccountFoundInListOfAccounts;
-	}
-
 }

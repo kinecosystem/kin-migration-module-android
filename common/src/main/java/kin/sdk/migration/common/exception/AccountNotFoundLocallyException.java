@@ -1,8 +1,8 @@
 package kin.sdk.migration.common.exception;
 
-public class AccountNotFoundInListOfAccounts extends MigrationFailedException {
+public class AccountNotFoundLocallyException extends MigrationFailedException {
 
-	public AccountNotFoundInListOfAccounts() {
+	public AccountNotFoundLocallyException() {
 		super("Account was not found in the list of accounts on this device");
 	}
 
