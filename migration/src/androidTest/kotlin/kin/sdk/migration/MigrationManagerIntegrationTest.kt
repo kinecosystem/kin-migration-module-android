@@ -9,10 +9,8 @@ import kin.sdk.migration.IntegConsts.TEST_SDK_URL_CREATE_ACCOUNT
 import kin.sdk.migration.MigrationManager.KIN_MIGRATION_COMPLETED_KEY
 import kin.sdk.migration.MigrationManager.KIN_MIGRATION_MODULE_PREFERENCE_FILE_KEY
 import kin.sdk.migration.bi.IMigrationEventsListener
-import kin.sdk.migration.common.exception.AccountNotFoundException
-import kin.sdk.migration.common.exception.FailedToResolveSdkVersionException
-import kin.sdk.migration.common.exception.MigrationInProcessException
-import kin.sdk.migration.common.exception.TransactionFailedException
+import kin.sdk.migration.common.KinSdkVersion
+import kin.sdk.migration.common.exception.*
 import kin.sdk.migration.common.interfaces.*
 import kin.sdk.migration.internal.core_related.KinAccountCoreImpl
 import org.hamcrest.MatcherAssert.assertThat
@@ -46,7 +44,7 @@ class MigrationManagerIntegrationTest {
 
     private val timeoutDurationSecondsLong: Long = 20
     private val timeoutDurationSecondsShort: Long = 10
-    private val timeoutDurationSecondsVeryShort: Long = 2
+    private val timeoutDurationSecondsVeryShort: Long = 200
     private lateinit var migrationManagerOldKin: MigrationManager
     private lateinit var migrationManagerNewKin: MigrationManager
     private val networkInfo = MigrationNetworkInfo(IntegConsts.TEST_CORE_NETWORK_URL, IntegConsts.TEST_CORE_NETWORK_ID, IntegConsts.TEST_SDK_NETWORK_URL,
@@ -73,9 +71,10 @@ class MigrationManagerIntegrationTest {
     @Before
     fun setup() {
         MockitoAnnotations.initMocks(this)
-        removeData()
         migrationManagerOldKin = getNewMigrationManager(IKinVersionProvider { kin.sdk.migration.common.KinSdkVersion.OLD_KIN_SDK })
         migrationManagerNewKin = getNewMigrationManager(IKinVersionProvider { kin.sdk.migration.common.KinSdkVersion.NEW_KIN_SDK })
+        removeData()
+
     }
 
     @After
@@ -86,6 +85,7 @@ class MigrationManagerIntegrationTest {
     private fun removeData() {
         val sharedPreferences = getSharedPreferences()
         sharedPreferences.edit().clear().apply()
+        migrationManagerOldKin.getKinClient(KinSdkVersion.OLD_KIN_SDK).clearAllAccounts()
     }
 
     @Test
@@ -369,7 +369,7 @@ class MigrationManagerIntegrationTest {
 
     @Test
     @LargeTest
-    fun start_burn_sendKinTBurnedAccount_TransactionFailedException() {
+    fun start_burn_sendKinBurnedAccount_TransactionFailedException() {
         val assertFailsWith = assertFailsWith(TransactionFailedException::class) {
             val oldAccount1 = createActivateAndFundOldKinAccount()
             getKinClientOnNewKinBlockchain()
@@ -379,6 +379,64 @@ class MigrationManagerIntegrationTest {
         }
         assertThat(assertFailsWith.message, containsString(LINE_FULL_RESULT_CODE))
 
+    }
+
+    @Test
+    @LargeTest
+    fun start_hasAccounts_and_hasPublicAddress_publicAddressFoundInAccounts_getKinClientSuccessfully() {
+        // Get kinClient object(it doesn't really matter what kin sdk version)
+        val kinClient = migrationManagerOldKin.getKinClient(KinSdkVersion.OLD_KIN_SDK)
+        // add account locally
+        val publicAddress = kinClient?.addAccount()?.publicAddress
+        getKinClientOnOldKinBlockchain(publicAddress)
+    }
+
+    @Test
+    @LargeTest
+    fun start_noAccounts_and_noPublicAddress_getKinClientSuccessfully() {
+        getKinClientOnOldKinBlockchain(null)
+    }
+
+    @Test
+    @LargeTest
+    fun start_hasAccounts_and_publicAddressNull_AccountNotFoundLocallyException() {
+        startMigrationOldKinAccountNotFound(null)
+    }
+
+    @Test
+    @LargeTest
+    fun start_hasAccounts_and_publicAddressEmpty_AccountNotFoundLocallyException() {
+        startMigrationOldKinAccountNotFound("")
+    }
+
+    @Test
+    @LargeTest
+    fun start_hasAccounts_and_publicAddressNotEmpty_publicAddresssNotFoundInAccounts_AccountNotFoundLocallyException() {
+        startMigrationOldKinAccountNotFound("ABCDEFG")
+    }
+
+    private fun startMigrationOldKinAccountNotFound(publicAddress: String?) {
+        // Get kinClient object(it doesn't really matter what kin sdk version)
+        val kinClient = migrationManagerOldKin.getKinClient(KinSdkVersion.OLD_KIN_SDK)
+        // add account locally
+        kinClient?.addAccount()
+        var error: Error? = null
+        val latch = CountDownLatch(1)
+        migrationManagerOldKin.start(publicAddress, object : IMigrationManagerCallbacks {
+            override fun onMigrationStart() {
+            }
+
+            override fun onReady(kinClient: IKinClient) {
+            }
+
+            override fun onError(e: Exception) {
+                error = Error(e)
+                latch.countDown()
+            }
+        })
+
+        assertTrue(latch.await(timeoutDurationSecondsLong, TimeUnit.SECONDS))
+        assertThat(error?.exception, `is`(instanceOf(AccountNotFoundLocallyException::class.java)))
     }
 
     private fun createActivateAndFundOldKinAccount(): IKinAccount? {
@@ -484,13 +542,13 @@ class MigrationManagerIntegrationTest {
         return newKinClient
     }
 
-    private fun getKinClientOnOldKinBlockchain(): IKinClient? {
+    private fun getKinClientOnOldKinBlockchain(publicAddress: String? = null): IKinClient? {
         val migrationDidStart = AtomicBoolean()
         val isOldSdk = AtomicBoolean()
         var error: Error? = null
         val latch = CountDownLatch(1)
         var oldKinClient: IKinClient? = null
-        migrationManagerOldKin.start(object : IMigrationManagerCallbacks {
+        migrationManagerOldKin.start(publicAddress, object : IMigrationManagerCallbacks {
             override fun onMigrationStart() {
                 migrationDidStart.set(true)
             }
