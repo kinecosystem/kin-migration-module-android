@@ -42,9 +42,9 @@ class MigrationManagerIntegrationTest {
     // exceed their declared trust limit for the asset being sent.
     private val LINE_FULL_RESULT_CODE = "op_line_full"
 
-    private val timeoutDurationSecondsLong: Long = 20
-    private val timeoutDurationSecondsShort: Long = 10
-    private val timeoutDurationSecondsVeryShort: Long = 200
+    private val timeoutDurationSecondsLong: Long = 200
+    private val timeoutDurationSecondsShort: Long = 100
+    private val timeoutDurationSecondsVeryShort: Long = 2000
     private lateinit var migrationManagerOldKin: MigrationManager
     private lateinit var migrationManagerNewKin: MigrationManager
     private val networkInfo = MigrationNetworkInfo(IntegConsts.TEST_CORE_NETWORK_URL, IntegConsts.TEST_CORE_NETWORK_ID, IntegConsts.TEST_SDK_NETWORK_URL,
@@ -83,9 +83,17 @@ class MigrationManagerIntegrationTest {
     }
 
     private fun removeData() {
+        clearSharedPreferences()
+        clearAllAccounts()
+    }
+
+    private fun clearAllAccounts() {
+        migrationManagerOldKin.getKinClient(KinSdkVersion.OLD_KIN_SDK).clearAllAccounts()
+    }
+
+    private fun clearSharedPreferences() {
         val sharedPreferences = getSharedPreferences()
         sharedPreferences.edit().clear().apply()
-        migrationManagerOldKin.getKinClient(KinSdkVersion.OLD_KIN_SDK).clearAllAccounts()
     }
 
     @Test
@@ -104,9 +112,9 @@ class MigrationManagerIntegrationTest {
         // getting a kin client just in order to use it for creating a local account and then start the migration.
         val oldKinClient = getKinClientOnOldKinBlockchain()
         // add account only locally but not in the blockchain
-        oldKinClient?.addAccount()
+        val account = oldKinClient?.addAccount()
         // starting the migration with a user that only have a local account
-        val newKinClient = getKinClientOnNewKinBlockchain()
+        val newKinClient = getKinClientOnNewKinBlockchain(account?.publicAddress)
         val newAccount = newKinClient?.getAccount(newKinClient.accountCount - 1)
         assertEquals(newAccount?.kinSdkVersion, kin.sdk.migration.common.KinSdkVersion.NEW_KIN_SDK)
     }
@@ -121,7 +129,7 @@ class MigrationManagerIntegrationTest {
         // create account on old kin blockchain but not activate it.
         createAccount(account)
         // starting the migration with a user that have an account also on the blockchain but it is not activated
-        val newKinClient = getKinClientOnNewKinBlockchain()
+        val newKinClient = getKinClientOnNewKinBlockchain(account?.publicAddress)
         val newAccount = newKinClient?.getAccount(newKinClient.accountCount - 1)
         assertEquals(newAccount?.kinSdkVersion, kin.sdk.migration.common.KinSdkVersion.NEW_KIN_SDK)
     }
@@ -251,9 +259,9 @@ class MigrationManagerIntegrationTest {
         val passphrase = "qwerty123"
         val export = accountToBackup.export(passphrase)
         // create regular old account which will now be the active account.
-        val oldAccountToMigrate = createActivateAndFundOldKinAccount()
+        val oldAccountToMigrate = createAndFundAccount(migrationManagerOldKin.getKinClient(KinSdkVersion.OLD_KIN_SDK))
         // migrate this account
-        val kinClientAfterMigration = getKinClientOnNewKinBlockchain()
+        val kinClientAfterMigration = getKinClientOnNewKinBlockchain(oldAccountToMigrate?.publicAddress)
         // verify that the migrated account is indeed the current active account
         assertThat(oldAccountToMigrate?.publicAddress, `is`(equalTo(kinClientAfterMigration?.getAccount(kinClientAfterMigration.accountCount - 1)?.publicAddress)))
         val importAccount = kinClientAfterMigration?.importAccount(export, passphrase)
@@ -263,7 +271,7 @@ class MigrationManagerIntegrationTest {
             importAccount?.balanceSync
         }
         // migrate backup account
-        getKinClientOnNewKinBlockchain()
+        getKinClientOnNewKinBlockchain(importAccount?.publicAddress)
         val balanceSync = importAccount?.balanceSync
         // verify that after migration the balance of the backup account is equal to the balance he had before restore and migrate
         assertEquals(balanceSync?.value()?.compareTo(accountToBackupBalance.value()), 0)
@@ -289,8 +297,8 @@ class MigrationManagerIntegrationTest {
         var error: Error? = null
         val latch = CountDownLatch(1)
         val kinClient = getNewKinClientAfterMigration()
-        removeData()
-        val account = kinClient?.getAccount(kinClient.accountCount)
+        clearSharedPreferences()
+        val account = kinClient?.getAccount(kinClient.accountCount - 1)
         if (withBalance) { //TODO do i really want to fund the new migrated account???
             fakeKinIssuer.fundWithKin(String.format(TEST_SDK_URL_CREATE_ACCOUNT + fundKinAmount, account))
         }
@@ -372,9 +380,10 @@ class MigrationManagerIntegrationTest {
     fun start_burn_sendKinBurnedAccount_TransactionFailedException() {
         val assertFailsWith = assertFailsWith(TransactionFailedException::class) {
             val oldAccount1 = createActivateAndFundOldKinAccount()
-            getKinClientOnNewKinBlockchain()
-            removeData()
-            val oldAccount2 = createActivateAndFundOldKinAccount()
+            getKinClientOnNewKinBlockchain(oldAccount1?.publicAddress)
+            clearSharedPreferences()
+            val kinClient = migrationManagerOldKin.getKinClient(KinSdkVersion.OLD_KIN_SDK)
+            val oldAccount2 = createAndFundAccount(kinClient)
             oldAccount2?.sendTransactionSync(oldAccount1?.publicAddress.orEmpty(), BigDecimal(10), null)
         }
         assertThat(assertFailsWith.message, containsString(LINE_FULL_RESULT_CODE))
@@ -441,6 +450,10 @@ class MigrationManagerIntegrationTest {
 
     private fun createActivateAndFundOldKinAccount(): IKinAccount? {
         val oldKinClient = getKinClientOnOldKinBlockchain()
+        return createAndFundAccount(oldKinClient)
+    }
+
+    private fun createAndFundAccount(oldKinClient: IKinClient?): IKinAccount? {
         val account = oldKinClient?.addAccount()
         createAccount(account)
         activateAccount(account)
@@ -517,12 +530,12 @@ class MigrationManagerIntegrationTest {
                 networkInfo, kinVersionProvider, eventListener)
     }
 
-    private fun getKinClientOnNewKinBlockchain(): IKinClient? {
+    private fun getKinClientOnNewKinBlockchain(publicAddress: String?): IKinClient? {
         val isNewSdk = AtomicBoolean()
         var error: Error? = null
         val latch = CountDownLatch(1)
         var newKinClient: IKinClient? = null
-        migrationManagerNewKin.start(object : IMigrationManagerCallbacks {
+        migrationManagerNewKin.start(publicAddress, object : IMigrationManagerCallbacks {
             override fun onMigrationStart() {
             }
 
