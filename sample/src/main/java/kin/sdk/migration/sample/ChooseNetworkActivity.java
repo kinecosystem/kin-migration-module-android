@@ -6,6 +6,7 @@ import android.graphics.Paint;
 import android.os.Bundle;
 import android.text.Html;
 import android.widget.TextView;
+import android.widget.Toast;
 import kin.sdk.migration.common.interfaces.IKinClient;
 import kin.sdk.migration.common.interfaces.IMigrationManagerCallbacks;
 
@@ -56,13 +57,12 @@ public class ChooseNetworkActivity extends BaseActivity {
 
             @Override
             public void onMigrationStart() {
-                // TODO: 02/01/2019 add some progress bar
+                // TODO: 02/01/2019 maybe add some progress bar later on
             }
 
             @Override
             public void onReady(IKinClient kinClient) {
                 if (kinClient.hasAccount()) {
-                    // TODO: 24/12/2018 should implement a way to see if activity was not destroyed
                     startActivity(WalletActivity.getIntent(ChooseNetworkActivity.this));
                 } else {
                     startActivity(CreateWalletActivity.getIntent(ChooseNetworkActivity.this));
@@ -71,7 +71,7 @@ public class ChooseNetworkActivity extends BaseActivity {
 
             @Override
             public void onError(Exception e) {
-                // TODO: 02/01/2019 add some error dialog
+                Toast.makeText(ChooseNetworkActivity.this, e.getMessage(), Toast.LENGTH_LONG).show();
             }
         });
     }
