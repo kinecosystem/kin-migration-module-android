@@ -188,7 +188,7 @@ public class MigrationManager {
 		// 2. If the list of accounts are empty but the public address is not empty.
 		// Return true in the those cases:
 		// 1. The account has been found in the list of account.
-		// 2. There are no account and no public address, which means that its probably a new user.
+		// 2. There are no accounts and no public address, which means that its probably a new user.
 		if (hasAccounts && !publicAddressIsEmpty) {
 			if (!isAccountFoundInListOfAccounts(newKinClient, publicAddress)) {
 				validatePublicAddress = false;

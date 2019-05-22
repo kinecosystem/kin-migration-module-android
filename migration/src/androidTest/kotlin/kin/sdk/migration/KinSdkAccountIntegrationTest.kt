@@ -27,8 +27,8 @@ class KinSdkAccountIntegrationTest {
 
     private val appId = "1a2c"
     private val appIdVersionPrefix = "1"
-    private val timeoutDurationSeconds : Long = 10
-    private val timeoutDurationSecondsLong : Long = 15
+    private val timeoutDurationSeconds: Long = 15
+    private val timeoutDurationSecondsLong: Long = 20
 
     private lateinit var kinClient: IKinClient
 
