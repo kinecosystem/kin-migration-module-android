@@ -16,12 +16,12 @@ public class KinSdkTransaction implements ITransaction {
 
     @Override
     public BigDecimal getAmount() {
-        return transaction.getAmount();
+        return new BigDecimal(0);
     }
 
     @Override
     public String getMemo() {
-        return transaction.getMemo();
+        return transaction.getMemo().toString();
     }
 
     @Override
