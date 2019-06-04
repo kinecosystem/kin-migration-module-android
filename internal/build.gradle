@@ -25,6 +25,6 @@ android {
 
 dependencies {
     implementation project(":common")
-    api 'com.github.kinecosystem:kin-sdk-android:1.0.4.1'
+    api 'com.github.kinecosystem:kin-sdk-android:DP-497_import_account_and_add_only_if_exist_from_kin_core-SNAPSHOT'
     api 'com.github.kinecosystem:kin-core-android:0.1.6'
 }
