@@ -11,7 +11,7 @@ import kin.sdk.EventListener;
 import kin.sdk.KinAccount;
 import kin.sdk.ListenerRegistration;
 import kin.sdk.PaymentInfo;
-import kin.sdk.Transaction;
+import kin.sdk.PaymentTransaction;
 import kin.sdk.TransactionId;
 import kin.sdk.migration.common.KinSdkVersion;
 import kin.sdk.migration.common.WhitelistResult;
@@ -74,7 +74,7 @@ public class KinAccountSdkImpl implements IKinAccount {
     public ITransactionId sendTransactionSync(@NonNull String publicAddress, @NonNull BigDecimal amount,
                                               @NonNull IWhitelistService whitelistService, @Nullable String memo) throws OperationFailedException {
         try {
-            Transaction transaction = kinAccount.buildTransactionSync(publicAddress, amount, 0, memo);
+            PaymentTransaction transaction = kinAccount.buildTransactionSync(publicAddress, amount, 0, memo);
             if (whitelistService != null) {
                 TransactionId transactionId = null;
                 WhitelistResult whitelistTransactionResult = whitelistService.onWhitelistableTransactionReady(new KinSdkTransaction(transaction).getWhitelistableTransaction());
