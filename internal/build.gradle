@@ -25,6 +25,6 @@ android {
 
 dependencies {
     implementation project(":common")
-    api 'com.github.kinecosystem:kin-sdk-android:8baa5dafb7'
+    api 'com.github.kinecosystem:kin-sdk-android:660e19b93889ae2ac823b2da00edae0773d43e97'
     api 'com.github.kinecosystem:kin-core-android:0.1.6'
 }

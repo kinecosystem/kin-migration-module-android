@@ -13,11 +13,11 @@ public class KinSdkWhitelistableTransaction implements IWhitelistableTransaction
 
     @Override
     public String getTransactionPayload() {
-        return whitelistableTransaction.getTransactionPayload();
+        return whitelistableTransaction.transactionPayload();
     }
 
     @Override
     public String getNetworkPassphrase() {
-        return whitelistableTransaction.getNetworkPassphrase();
+        return whitelistableTransaction.networkPassphrase();
     }
 }

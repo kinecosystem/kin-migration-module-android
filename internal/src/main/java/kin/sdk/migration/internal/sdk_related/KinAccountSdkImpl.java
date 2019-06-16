@@ -74,7 +74,7 @@ public class KinAccountSdkImpl implements IKinAccount {
     public ITransactionId sendTransactionSync(@NonNull String publicAddress, @NonNull BigDecimal amount,
                                               @NonNull IWhitelistService whitelistService, @Nullable String memo) throws OperationFailedException {
         try {
-            PaymentTransaction transaction = kinAccount.buildTransactionSync(publicAddress, amount, 0, memo);
+            PaymentTransaction transaction = kinAccount.buildPaymentTransactionSync(publicAddress, amount, 0, memo);
             if (whitelistService != null) {
                 TransactionId transactionId = null;
                 WhitelistResult whitelistTransactionResult = whitelistService.onWhitelistableTransactionReady(new KinSdkTransaction(transaction).getWhitelistableTransaction());
